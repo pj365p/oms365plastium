@@ -25,7 +25,7 @@ function daysAgo(days) {
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleDateString(); // only show date
+  return d.toLocaleDateString();
 }
 
 function OrderForm({ onAdd }) {
@@ -42,7 +42,7 @@ function OrderForm({ onAdd }) {
       product: product.trim(),
       qty: Number(qty) || 1,
       dispatchAt: dispatchAt || null,
-      status: "pending", // directly start in pending
+      status: "pending",
       createdAt: nowISO(),
       updatedAt: nowISO(),
     };
@@ -84,45 +84,77 @@ function OrderForm({ onAdd }) {
   );
 }
 
-function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
+function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    customer: order.customer,
+    product: order.product,
+    qty: order.qty,
+    dispatchAt: order.dispatchAt ? order.dispatchAt.slice(0, 10) : "",
+  });
+
+  const handleSave = () => {
+    if (!form.customer.trim() || !form.product.trim()) return alert("Fields required");
+    onEdit(order.id, form);
+    setEditing(false);
+  };
+
   return (
     <div className="order-row">
       <div className="order-main">
-        <div className="order-title">
-          <strong>{order.customer}</strong>
-          <span className="muted"> — {order.product}</span>
-        </div>
-        <div className="order-meta">
-          Qty: {order.qty} · {order.dispatchAt ? `Dispatch: ${formatDateLocal(order.dispatchAt)}` : "No dispatch"}
-        </div>
+        {editing ? (
+          <div className="edit-form">
+            <input value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
+            <input value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} />
+            <input type="number" value={form.qty} min="1" onChange={(e) => setForm({ ...form, qty: e.target.value })} />
+            <input type="date" value={form.dispatchAt} onChange={(e) => setForm({ ...form, dispatchAt: e.target.value })} />
+            <button className="btn small primary" onClick={handleSave}>Save</button>
+            <button className="btn small" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        ) : (
+          <>
+            <div className="order-title">
+              <strong>{order.customer}</strong>
+              <span className="muted"> — {order.product}</span>
+            </div>
+            <div className="order-meta">
+              Qty: {order.qty} · {order.dispatchAt ? `Dispatch: ${formatDateLocal(order.dispatchAt)}` : "No dispatch"}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="order-side">
-        <div className={`status-pill ${order.status}`}>{order.status.toUpperCase()}</div>
-        <div className="order-times muted">
-          <div>Created: {formatDateLocal(order.createdAt)}</div>
-          <div>Updated: {formatDateLocal(order.updatedAt)}</div>
-          {isTrash && <div>Deleted: {formatDateLocal(order.deletedAt)}</div>}
-        </div>
+      {!editing && (
+        <div className="order-side">
+          <div className={`status-pill ${order.status}`}>{order.status.toUpperCase()}</div>
+          <div className="order-times muted">
+            <div>Created: {formatDateLocal(order.createdAt)}</div>
+            <div>Updated: {formatDateLocal(order.updatedAt)}</div>
+            {isTrash && <div>Deleted: {formatDateLocal(order.deletedAt)}</div>}
+          </div>
 
-        <div className="order-actions">
-          {!isTrash && order.status === "pending" && (
-            <button className="btn small" onClick={() => onUpdateStatus(order.id, "completed")}>Mark Completed</button>
-          )}
-          {!isTrash && order.status === "completed" && (
-            <button className="btn small" onClick={() => onUpdateStatus(order.id, "pending")}>Move to Pending</button>
-          )}
-          {!isTrash && (
-            <button className="btn small danger" onClick={() => onDelete(order)}>Delete</button>
-          )}
-          {isTrash && (
-            <>
-              <button className="btn small" onClick={() => onRestore(order)}>Restore</button>
-              <button className="btn small danger" onClick={() => onDelete(order, true)}>Delete Permanently</button>
-            </>
-          )}
+          <div className="order-actions">
+            {!isTrash && order.status === "pending" && (
+              <button className="btn small" onClick={() => onUpdateStatus(order.id, "completed")}>Mark Completed</button>
+            )}
+            {!isTrash && order.status === "completed" && (
+              <button className="btn small" onClick={() => onUpdateStatus(order.id, "pending")}>Move to Pending</button>
+            )}
+            {!isTrash && (
+              <>
+                <button className="btn small" onClick={() => setEditing(true)}>Edit</button>
+                <button className="btn small danger" onClick={() => onDelete(order)}>Delete</button>
+              </>
+            )}
+            {isTrash && (
+              <>
+                <button className="btn small" onClick={() => onRestore(order)}>Restore</button>
+                <button className="btn small danger" onClick={() => onDelete(order, true)}>Delete Permanently</button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -154,7 +186,6 @@ export default function App() {
     return unsub;
   }, []);
 
-  // auto delete older than 10 days
   useEffect(() => {
     const cleanup = async () => {
       const tenDaysAgo = daysAgo(10);
@@ -178,6 +209,15 @@ export default function App() {
     await updateDoc(ref, { status, updatedAt: nowISO() });
   }
 
+  async function editOrder(id, updates) {
+    const ref = doc(db, "orders", id);
+    await updateDoc(ref, {
+      ...updates,
+      qty: Number(updates.qty) || 1,
+      updatedAt: nowISO(),
+    });
+  }
+
   async function deleteOrder(order, permanent = false) {
     if (!permanent) {
       const trashData = { ...order, deletedAt: nowISO() };
@@ -189,7 +229,7 @@ export default function App() {
   }
 
   async function restoreOrder(order) {
-    const restored = { ...order };
+    const restored = { ...order, status: "pending" }; // always restore as pending
     delete restored.deletedAt;
     await addDoc(ordersRef, restored);
     await deleteDoc(doc(trashRef, order.id));
@@ -226,7 +266,7 @@ export default function App() {
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
           <div>
             <h1>OMS365 Plastium</h1>
-            <div className="muted small">Shared orders with Trash recovery</div>
+            <div className="muted small">Edit, track, and recover orders</div>
           </div>
         </div>
       </header>
@@ -275,6 +315,7 @@ export default function App() {
                   onUpdateStatus={updateStatus}
                   onDelete={deleteOrder}
                   onRestore={restoreOrder}
+                  onEdit={editOrder}
                   isTrash={tab === "trash"}
                 />
               ))
@@ -284,7 +325,7 @@ export default function App() {
       </main>
 
       <footer>
-        <div className="muted">Data synced via Firebase · Deleted orders kept for 10 days</div>
+        <div className="muted">Data synced via Firebase · Editable orders · Trash kept 10 days</div>
       </footer>
     </div>
   );
