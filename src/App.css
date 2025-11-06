@@ -17,7 +17,16 @@ body {
 .app {
   max-width: 1100px;
   margin: 18px auto;
-  padding: 12px;
+  box-sizing: border-box;
+
+  /* spacing */
+  padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
+
+  background: #f9fafb; /* optional - makes spacing visible */
 }
 
 /* header */
@@ -97,22 +106,4 @@ footer { margin-top:12px; text-align:center; color:var(--muted); font-size:13px;
 @media (max-width:900px){
   main { grid-template-columns: 1fr; }
   .order-side { width:100%; align-items:flex-start; }
-}
-/* === MOBILE SAFE AREA FIX === */
-.app {
-  padding: 16px;
-  padding-top: calc(16px + env(safe-area-inset-top));
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  padding-left: calc(16px + env(safe-area-inset-left));
-  padding-right: calc(16px + env(safe-area-inset-right));
-}
-
-/* Optional: prevent content from touching edges on all devices */
-main {
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-header, footer {
-  margin: 0 4px;
 }
