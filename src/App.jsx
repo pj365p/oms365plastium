@@ -1,22 +1,31 @@
 import React, { useEffect, useState, useMemo } from "react";
 import "./App.css";
-import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
-
-/*
-  OMS365Plastium - synced with Firebase Firestore
-  - Orders have: id, customer, product, qty, dispatchAt, status, createdAt, updatedAt
-  - status: "new" | "pending" | "completed"
-*/
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  getDocs,
+  setDoc
+} from "firebase/firestore";
 
 function nowISO() {
   return new Date().toISOString();
 }
 
+function daysAgo(days) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleString();
+  return d.toLocaleDateString(); // only show date
 }
 
 function OrderForm({ onAdd }) {
@@ -33,7 +42,7 @@ function OrderForm({ onAdd }) {
       product: product.trim(),
       qty: Number(qty) || 1,
       dispatchAt: dispatchAt || null,
-      status: "new",
+      status: "pending", // directly start in pending
       createdAt: nowISO(),
       updatedAt: nowISO(),
     };
@@ -63,20 +72,19 @@ function OrderForm({ onAdd }) {
           <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
         </label>
         <label>
-          Dispatch (optional)
-          <input type="datetime-local" value={dispatchAt} onChange={(e) => setDispatchAt(e.target.value)} />
+          Dispatch Date
+          <input type="date" value={dispatchAt} onChange={(e) => setDispatchAt(e.target.value)} />
         </label>
       </div>
 
       <div className="row actions">
         <button type="submit" className="btn primary">Add Order</button>
-        <small className="hint">New orders default to <strong>New</strong> status.</small>
       </div>
     </form>
   );
 }
 
-function OrderRow({ order, onUpdateStatus, onDelete }) {
+function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
   return (
     <div className="order-row">
       <div className="order-main">
@@ -85,8 +93,7 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
           <span className="muted"> — {order.product}</span>
         </div>
         <div className="order-meta">
-          Qty: {order.qty} ·
-          {order.dispatchAt ? ` Dispatch: ${formatDateLocal(order.dispatchAt)}` : " No dispatch"}
+          Qty: {order.qty} · {order.dispatchAt ? `Dispatch: ${formatDateLocal(order.dispatchAt)}` : "No dispatch"}
         </div>
       </div>
 
@@ -95,19 +102,25 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
         <div className="order-times muted">
           <div>Created: {formatDateLocal(order.createdAt)}</div>
           <div>Updated: {formatDateLocal(order.updatedAt)}</div>
+          {isTrash && <div>Deleted: {formatDateLocal(order.deletedAt)}</div>}
         </div>
 
         <div className="order-actions">
-          {order.status !== "completed" && (
+          {!isTrash && order.status === "pending" && (
             <button className="btn small" onClick={() => onUpdateStatus(order.id, "completed")}>Mark Completed</button>
           )}
-          {order.status === "new" && (
-            <button className="btn small" onClick={() => onUpdateStatus(order.id, "pending")}>Start</button>
+          {!isTrash && order.status === "completed" && (
+            <button className="btn small" onClick={() => onUpdateStatus(order.id, "pending")}>Move to Pending</button>
           )}
-          {order.status === "pending" && (
-            <button className="btn small" onClick={() => onUpdateStatus(order.id, "new")}>Back to New</button>
+          {!isTrash && (
+            <button className="btn small danger" onClick={() => onDelete(order)}>Delete</button>
           )}
-          <button className="btn small danger" onClick={() => onDelete(order.id)}>Delete</button>
+          {isTrash && (
+            <>
+              <button className="btn small" onClick={() => onRestore(order)}>Restore</button>
+              <button className="btn small danger" onClick={() => onDelete(order, true)}>Delete Permanently</button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -116,24 +129,48 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
 
 export default function App() {
   const [orders, setOrders] = useState([]);
+  const [deletedOrders, setDeletedOrders] = useState([]);
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState("createdAt");
   const [sortDir, setSortDir] = useState("desc");
 
   const ordersRef = collection(db, "orders");
+  const trashRef = collection(db, "deleted_orders");
 
-  // Sync with Firestore in realtime
   useEffect(() => {
-    const unsub = onSnapshot(ordersRef, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setOrders(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    const unsub = onSnapshot(ordersRef, (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setOrders(data);
     });
-    return () => unsub();
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(trashRef, (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setDeletedOrders(data);
+    });
+    return unsub;
+  }, []);
+
+  // auto delete older than 10 days
+  useEffect(() => {
+    const cleanup = async () => {
+      const tenDaysAgo = daysAgo(10);
+      const snapshot = await getDocs(trashRef);
+      snapshot.forEach(async (docu) => {
+        const data = docu.data();
+        if (data.deletedAt < tenDaysAgo) {
+          await deleteDoc(doc(trashRef, docu.id));
+        }
+      });
+    };
+    cleanup();
   }, []);
 
   async function addOrder(order) {
-    await addDoc(ordersRef, { ...order, createdAt: nowISO(), updatedAt: nowISO() });
+    await addDoc(ordersRef, order);
   }
 
   async function updateStatus(id, status) {
@@ -141,24 +178,27 @@ export default function App() {
     await updateDoc(ref, { status, updatedAt: nowISO() });
   }
 
-  async function deleteOrder(id) {
-    if (!confirm("Delete this order?")) return;
-    await deleteDoc(doc(db, "orders", id));
+  async function deleteOrder(order, permanent = false) {
+    if (!permanent) {
+      const trashData = { ...order, deletedAt: nowISO() };
+      await setDoc(doc(trashRef, order.id), trashData);
+      await deleteDoc(doc(ordersRef, order.id));
+    } else {
+      await deleteDoc(doc(trashRef, order.id));
+    }
   }
 
-  function exportJSON() {
-    const blob = new Blob([JSON.stringify(orders, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "oms365plastium_orders.json";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function restoreOrder(order) {
+    const restored = { ...order };
+    delete restored.deletedAt;
+    await addDoc(ordersRef, restored);
+    await deleteDoc(doc(trashRef, order.id));
   }
 
   const filtered = useMemo(() => {
-    let out = orders.slice();
-    if (tab !== "all") out = out.filter((o) => o.status === tab);
+    const list = tab === "trash" ? deletedOrders : orders;
+    let out = [...list];
+    if (tab !== "all" && tab !== "trash") out = out.filter((o) => o.status === tab);
     if (q.trim()) {
       const tq = q.toLowerCase();
       out = out.filter((o) =>
@@ -177,7 +217,7 @@ export default function App() {
       return 0;
     });
     return out;
-  }, [orders, tab, q, sortKey, sortDir]);
+  }, [orders, deletedOrders, tab, q, sortKey, sortDir]);
 
   return (
     <div className="app">
@@ -186,25 +226,22 @@ export default function App() {
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
           <div>
             <h1>OMS365 Plastium</h1>
-            <div className="muted small">Punch & track orders — synced via Firebase</div>
+            <div className="muted small">Shared orders with Trash recovery</div>
           </div>
-        </div>
-        <div className="top-actions">
-          <button className="btn" onClick={exportJSON}>Export</button>
         </div>
       </header>
 
       <main>
         <section className="left">
-          <OrderForm onAdd={addOrder} />
+          {tab !== "trash" && <OrderForm onAdd={addOrder} />}
           <div className="controls">
-            <input placeholder="Search customer or product..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <input placeholder="Search..." value={q} onChange={(e) => setQ(e.target.value)} />
             <div className="selects">
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                <option value="createdAt">Sort: Created</option>
-                <option value="dispatchAt">Sort: Dispatch</option>
-                <option value="qty">Sort: Qty</option>
-                <option value="customer">Sort: Customer</option>
+                <option value="createdAt">Created</option>
+                <option value="dispatchAt">Dispatch</option>
+                <option value="qty">Qty</option>
+                <option value="customer">Customer</option>
               </select>
               <select value={sortDir} onChange={(e) => setSortDir(e.target.value)}>
                 <option value="desc">Desc</option>
@@ -216,20 +253,30 @@ export default function App() {
 
         <section className="right">
           <div className="tabs">
-            {["all", "new", "pending", "completed"].map((t) => (
+            {["all", "pending", "completed", "trash"].map((t) => (
               <button key={t} className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-                {t === "all" ? "All" : t[0].toUpperCase() + t.slice(1)}
-                {t !== "all" && ` (${orders.filter(o => o.status === t).length})`}
+                {t === "all"
+                  ? "All"
+                  : t === "trash"
+                  ? "Trash"
+                  : t[0].toUpperCase() + t.slice(1)}
               </button>
             ))}
           </div>
 
           <div className="orders">
             {filtered.length === 0 ? (
-              <div className="empty">No orders found — add one on the left.</div>
+              <div className="empty">No {tab === "trash" ? "deleted" : ""} orders found.</div>
             ) : (
               filtered.map((o) => (
-                <OrderRow key={o.id} order={o} onUpdateStatus={updateStatus} onDelete={deleteOrder} />
+                <OrderRow
+                  key={o.id}
+                  order={o}
+                  onUpdateStatus={updateStatus}
+                  onDelete={deleteOrder}
+                  onRestore={restoreOrder}
+                  isTrash={tab === "trash"}
+                />
               ))
             )}
           </div>
@@ -237,7 +284,7 @@ export default function App() {
       </main>
 
       <footer>
-        <div className="muted">Data synced to Firebase Firestore — shared across users.</div>
+        <div className="muted">Data synced via Firebase · Deleted orders kept for 10 days</div>
       </footer>
     </div>
   );
