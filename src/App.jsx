@@ -265,6 +265,7 @@ export default function App() {
   const ordersRef = collection(db, "orders");
   const trashRef = collection(db, "deleted_orders");
 
+  // Live listeners
   useEffect(() => {
     const unsub = onSnapshot(ordersRef, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -281,6 +282,7 @@ export default function App() {
     return unsub;
   }, []);
 
+  // Auto cleanup (delete trash older than 10 days)
   useEffect(() => {
     const cleanup = async () => {
       const tenDaysAgo = daysAgo(10);
@@ -295,15 +297,18 @@ export default function App() {
     cleanup();
   }, []);
 
+  // Add new order
   async function addOrder(order) {
     await addDoc(ordersRef, order);
   }
 
+  // Update status
   async function updateStatus(id, status) {
     const ref = doc(db, "orders", id);
     await updateDoc(ref, { status, updatedAt: nowISO() });
   }
 
+  // Edit existing
   async function editOrder(id, updates) {
     const ref = doc(db, "orders", id);
     await updateDoc(ref, {
@@ -313,9 +318,13 @@ export default function App() {
     });
   }
 
+  // Delete or move to trash
   async function deleteOrder(order, permanent = false) {
     if (!permanent) {
-      const trashData = { ...order, deletedAt: nowISO() };
+      const cleanOrder = { ...order };
+      delete cleanOrder.id;
+      delete cleanOrder.deletedAt;
+      const trashData = { ...cleanOrder, deletedAt: nowISO() };
       await setDoc(doc(trashRef, order.id), trashData);
       await deleteDoc(doc(ordersRef, order.id));
     } else {
@@ -323,13 +332,13 @@ export default function App() {
     }
   }
 
-  // ✅ FIXED restore: keep same ID using setDoc()
+  // ✅ FIXED RESTORE: keeps same ID, fully re-syncs, and clears deletedAt
   async function restoreOrder(order) {
     const restored = { ...order, status: "pending" };
     delete restored.deletedAt;
-    await setDoc(doc(ordersRef, order.id), restored); // keep same ID
+    await setDoc(doc(ordersRef, order.id), restored);
     await deleteDoc(doc(trashRef, order.id));
-    alert("✅ Order restored successfully!");
+    alert("✅ Order restored successfully and reactivated!");
   }
 
   const filtered = useMemo(() => {
