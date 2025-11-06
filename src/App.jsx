@@ -9,7 +9,7 @@ import {
   doc,
   updateDoc,
   getDocs,
-  setDoc
+  setDoc,
 } from "firebase/firestore";
 
 function nowISO() {
@@ -36,7 +36,8 @@ function OrderForm({ onAdd }) {
 
   function submit(e) {
     e.preventDefault();
-    if (!customer.trim() || !product.trim()) return alert("Customer & product required");
+    if (!customer.trim() || !product.trim())
+      return alert("Customer & product required");
     const order = {
       customer: customer.trim(),
       product: product.trim(),
@@ -58,33 +59,59 @@ function OrderForm({ onAdd }) {
       <div className="row">
         <label>
           Customer
-          <input value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="Customer name" />
+          <input
+            value={customer}
+            onChange={(e) => setCustomer(e.target.value)}
+            placeholder="Customer name"
+          />
         </label>
         <label>
           Product
-          <input value={product} onChange={(e) => setProduct(e.target.value)} placeholder="Product name" />
+          <input
+            value={product}
+            onChange={(e) => setProduct(e.target.value)}
+            placeholder="Product name"
+          />
         </label>
       </div>
 
       <div className="row">
         <label>
           Qty
-          <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <input
+            type="number"
+            min="1"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+          />
         </label>
         <label>
           Dispatch Date
-          <input type="date" value={dispatchAt} onChange={(e) => setDispatchAt(e.target.value)} />
+          <input
+            type="date"
+            value={dispatchAt}
+            onChange={(e) => setDispatchAt(e.target.value)}
+          />
         </label>
       </div>
 
       <div className="row actions">
-        <button type="submit" className="btn primary">Add Order</button>
+        <button type="submit" className="btn primary">
+          Add Order
+        </button>
       </div>
     </form>
   );
 }
 
-function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash }) {
+function OrderRow({
+  order,
+  onUpdateStatus,
+  onDelete,
+  onRestore,
+  onEdit,
+  isTrash,
+}) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     customer: order.customer,
@@ -94,7 +121,8 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash 
   });
 
   const handleSave = () => {
-    if (!form.customer.trim() || !form.product.trim()) return alert("Fields required");
+    if (!form.customer.trim() || !form.product.trim())
+      return alert("Fields required");
     onEdit(order.id, form);
     setEditing(false);
   };
@@ -104,12 +132,42 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash 
       <div className="order-main">
         {editing ? (
           <div className="edit-form">
-            <input value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
-            <input value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} />
-            <input type="number" value={form.qty} min="1" onChange={(e) => setForm({ ...form, qty: e.target.value })} />
-            <input type="date" value={form.dispatchAt} onChange={(e) => setForm({ ...form, dispatchAt: e.target.value })} />
-            <button className="btn small primary" onClick={handleSave}>Save</button>
-            <button className="btn small" onClick={() => setEditing(false)}>Cancel</button>
+            <input
+              value={form.customer}
+              onChange={(e) =>
+                setForm({ ...form, customer: e.target.value })
+              }
+            />
+            <input
+              value={form.product}
+              onChange={(e) =>
+                setForm({ ...form, product: e.target.value })
+              }
+            />
+            <input
+              type="number"
+              value={form.qty}
+              min="1"
+              onChange={(e) =>
+                setForm({ ...form, qty: e.target.value })
+              }
+            />
+            <input
+              type="date"
+              value={form.dispatchAt}
+              onChange={(e) =>
+                setForm({ ...form, dispatchAt: e.target.value })
+              }
+            />
+            <button className="btn small primary" onClick={handleSave}>
+              Save
+            </button>
+            <button
+              className="btn small"
+              onClick={() => setEditing(false)}
+            >
+              Cancel
+            </button>
           </div>
         ) : (
           <>
@@ -118,7 +176,10 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash 
               <span className="muted"> — {order.product}</span>
             </div>
             <div className="order-meta">
-              Qty: {order.qty} · {order.dispatchAt ? `Dispatch: ${formatDateLocal(order.dispatchAt)}` : "No dispatch"}
+              Qty: {order.qty} ·{" "}
+              {order.dispatchAt
+                ? `Dispatch: ${formatDateLocal(order.dispatchAt)}`
+                : "No dispatch"}
             </div>
           </>
         )}
@@ -126,30 +187,64 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash 
 
       {!editing && (
         <div className="order-side">
-          <div className={`status-pill ${order.status}`}>{order.status.toUpperCase()}</div>
+          <div className={`status-pill ${order.status}`}>
+            {order.status.toUpperCase()}
+          </div>
           <div className="order-times muted">
             <div>Created: {formatDateLocal(order.createdAt)}</div>
             <div>Updated: {formatDateLocal(order.updatedAt)}</div>
-            {isTrash && <div>Deleted: {formatDateLocal(order.deletedAt)}</div>}
+            {isTrash && (
+              <div>Deleted: {formatDateLocal(order.deletedAt)}</div>
+            )}
           </div>
 
           <div className="order-actions">
             {!isTrash && order.status === "pending" && (
-              <button className="btn small" onClick={() => onUpdateStatus(order.id, "completed")}>Mark Completed</button>
+              <button
+                className="btn small"
+                onClick={() => onUpdateStatus(order.id, "completed")}
+              >
+                Mark Completed
+              </button>
             )}
             {!isTrash && order.status === "completed" && (
-              <button className="btn small" onClick={() => onUpdateStatus(order.id, "pending")}>Move to Pending</button>
+              <button
+                className="btn small"
+                onClick={() => onUpdateStatus(order.id, "pending")}
+              >
+                Move to Pending
+              </button>
             )}
             {!isTrash && (
               <>
-                <button className="btn small" onClick={() => setEditing(true)}>Edit</button>
-                <button className="btn small danger" onClick={() => onDelete(order)}>Delete</button>
+                <button
+                  className="btn small"
+                  onClick={() => setEditing(true)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn small danger"
+                  onClick={() => onDelete(order)}
+                >
+                  Delete
+                </button>
               </>
             )}
             {isTrash && (
               <>
-                <button className="btn small" onClick={() => onRestore(order)}>Restore</button>
-                <button className="btn small danger" onClick={() => onDelete(order, true)}>Delete Permanently</button>
+                <button
+                  className="btn small"
+                  onClick={() => onRestore(order)}
+                >
+                  Restore
+                </button>
+                <button
+                  className="btn small danger"
+                  onClick={() => onDelete(order, true)}
+                >
+                  Delete Permanently
+                </button>
               </>
             )}
           </div>
@@ -228,29 +323,34 @@ export default function App() {
     }
   }
 
+  // ✅ FIXED restore: keep same ID using setDoc()
   async function restoreOrder(order) {
-    const restored = { ...order, status: "pending" }; // always restore as pending
+    const restored = { ...order, status: "pending" };
     delete restored.deletedAt;
-    await addDoc(ordersRef, restored);
+    await setDoc(doc(ordersRef, order.id), restored); // keep same ID
     await deleteDoc(doc(trashRef, order.id));
+    alert("✅ Order restored successfully!");
   }
 
   const filtered = useMemo(() => {
     const list = tab === "trash" ? deletedOrders : orders;
     let out = [...list];
-    if (tab !== "all" && tab !== "trash") out = out.filter((o) => o.status === tab);
+    if (tab !== "all" && tab !== "trash")
+      out = out.filter((o) => o.status === tab);
     if (q.trim()) {
       const tq = q.toLowerCase();
-      out = out.filter((o) =>
-        o.customer.toLowerCase().includes(tq) ||
-        o.product.toLowerCase().includes(tq)
+      out = out.filter(
+        (o) =>
+          o.customer.toLowerCase().includes(tq) ||
+          o.product.toLowerCase().includes(tq)
       );
     }
     out.sort((a, b) => {
       let A = a[sortKey] || "";
       let B = b[sortKey] || "";
       if (sortKey === "qty") {
-        A = Number(A); B = Number(B);
+        A = Number(A);
+        B = Number(B);
       }
       if (A < B) return sortDir === "asc" ? -1 : 1;
       if (A > B) return sortDir === "asc" ? 1 : -1;
@@ -266,7 +366,9 @@ export default function App() {
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
           <div>
             <h1>OMS365 Plastium</h1>
-            <div className="muted small">Edit, track, and recover orders</div>
+            <div className="muted small">
+              Edit, track, and recover orders
+            </div>
           </div>
         </div>
       </header>
@@ -275,15 +377,25 @@ export default function App() {
         <section className="left">
           {tab !== "trash" && <OrderForm onAdd={addOrder} />}
           <div className="controls">
-            <input placeholder="Search..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <input
+              placeholder="Search..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
             <div className="selects">
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value)}
+              >
                 <option value="createdAt">Created</option>
                 <option value="dispatchAt">Dispatch</option>
                 <option value="qty">Qty</option>
                 <option value="customer">Customer</option>
               </select>
-              <select value={sortDir} onChange={(e) => setSortDir(e.target.value)}>
+              <select
+                value={sortDir}
+                onChange={(e) => setSortDir(e.target.value)}
+              >
                 <option value="desc">Desc</option>
                 <option value="asc">Asc</option>
               </select>
@@ -294,7 +406,11 @@ export default function App() {
         <section className="right">
           <div className="tabs">
             {["all", "pending", "completed", "trash"].map((t) => (
-              <button key={t} className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
+              <button
+                key={t}
+                className={`tab ${tab === t ? "active" : ""}`}
+                onClick={() => setTab(t)}
+              >
                 {t === "all"
                   ? "All"
                   : t === "trash"
@@ -306,7 +422,9 @@ export default function App() {
 
           <div className="orders">
             {filtered.length === 0 ? (
-              <div className="empty">No {tab === "trash" ? "deleted" : ""} orders found.</div>
+              <div className="empty">
+                No {tab === "trash" ? "deleted" : ""} orders found.
+              </div>
             ) : (
               filtered.map((o) => (
                 <OrderRow
@@ -325,7 +443,9 @@ export default function App() {
       </main>
 
       <footer>
-        <div className="muted">Data synced via Firebase · Editable orders · Trash kept 10 days</div>
+        <div className="muted">
+          Data synced via Firebase · Editable orders · Trash kept 10 days
+        </div>
       </footer>
     </div>
   );
