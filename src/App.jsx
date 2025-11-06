@@ -1,17 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import "./App.css";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "./firebase";
 
 /*
-  OMS365Plastium - single-file app (React + localStorage)
+  OMS365Plastium - synced with Firebase Firestore
   - Orders have: id, customer, product, qty, dispatchAt, status, createdAt, updatedAt
   - status: "new" | "pending" | "completed"
 */
-
-const STORAGE_KEY = "oms365plastium_orders_v1";
-
-function uid() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 function nowISO() {
   return new Date().toISOString();
@@ -33,7 +29,6 @@ function OrderForm({ onAdd }) {
     e.preventDefault();
     if (!customer.trim() || !product.trim()) return alert("Customer & product required");
     const order = {
-      id: uid(),
       customer: customer.trim(),
       product: product.trim(),
       qty: Number(qty) || 1,
@@ -121,46 +116,34 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
 
 export default function App() {
   const [orders, setOrders] = useState([]);
-  const [tab, setTab] = useState("all"); // all | new | pending | completed
+  const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
-  const [sortKey, setSortKey] = useState("createdAt"); // createdAt | dispatchAt | qty | customer
+  const [sortKey, setSortKey] = useState("createdAt");
   const [sortDir, setSortDir] = useState("desc");
 
-  // load from storage on mount
+  const ordersRef = collection(db, "orders");
+
+  // Sync with Firestore in realtime
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setOrders(JSON.parse(raw));
-    } catch (e) {
-      console.warn("Failed reading storage", e);
-    }
+    const unsub = onSnapshot(ordersRef, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setOrders(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    });
+    return () => unsub();
   }, []);
 
-  // persist on orders change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-  }, [orders]);
-
-  function addOrder(order) {
-    setOrders((s) => [order, ...s]);
+  async function addOrder(order) {
+    await addDoc(ordersRef, { ...order, createdAt: nowISO(), updatedAt: nowISO() });
   }
 
-  function updateStatus(id, status) {
-    setOrders((s) =>
-      s.map((o) =>
-        o.id === id ? { ...o, status, updatedAt: nowISO() } : o
-      )
-    );
+  async function updateStatus(id, status) {
+    const ref = doc(db, "orders", id);
+    await updateDoc(ref, { status, updatedAt: nowISO() });
   }
 
-  function deleteOrder(id) {
+  async function deleteOrder(id) {
     if (!confirm("Delete this order?")) return;
-    setOrders((s) => s.filter((o) => o.id !== id));
-  }
-
-  function clearAll() {
-    if (!confirm("Clear all orders from local storage?")) return;
-    setOrders([]);
+    await deleteDoc(doc(db, "orders", id));
   }
 
   function exportJSON() {
@@ -171,23 +154,6 @@ export default function App() {
     a.download = "oms365plastium_orders.json";
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  function importJSON(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const arr = JSON.parse(reader.result);
-        if (!Array.isArray(arr)) throw new Error("Invalid file");
-        setOrders(arr);
-        alert("Imported orders (replaced current).");
-      } catch (err) {
-        alert("Failed to import: " + err.message);
-      }
-    };
-    reader.readAsText(f);
   }
 
   const filtered = useMemo(() => {
@@ -205,9 +171,6 @@ export default function App() {
       let B = b[sortKey] || "";
       if (sortKey === "qty") {
         A = Number(A); B = Number(B);
-      } else {
-        A = A || "";
-        B = B || "";
       }
       if (A < B) return sortDir === "asc" ? -1 : 1;
       if (A > B) return sortDir === "asc" ? 1 : -1;
@@ -223,16 +186,11 @@ export default function App() {
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
           <div>
             <h1>OMS365 Plastium</h1>
-            <div className="muted small">Punch & track orders — PWA</div>
+            <div className="muted small">Punch & track orders — synced via Firebase</div>
           </div>
         </div>
         <div className="top-actions">
           <button className="btn" onClick={exportJSON}>Export</button>
-          <label className="btn file">
-            Import
-            <input type="file" accept="application/json" onChange={importJSON} />
-          </label>
-          <button className="btn danger" onClick={clearAll}>Clear All</button>
         </div>
       </header>
 
@@ -279,7 +237,7 @@ export default function App() {
       </main>
 
       <footer>
-        <div className="muted">Data saved locally to your browser. Works offline.</div>
+        <div className="muted">Data synced to Firebase Firestore — shared across users.</div>
       </footer>
     </div>
   );
