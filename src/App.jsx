@@ -375,14 +375,16 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <div className="brand">
+        <div className="header-left">
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
-          <div>
-            <h1>OMS365 Plastium</h1>
-            <div className="muted small">
-              Edit, track, and recover orders
-            </div>
-          </div>
+          <span className="brand-text">
+            <span className="blue-text">365 PLASTIUM</span>
+          </span>
+        </div>
+      
+        <div className="header-center">
+          <h1>Order Book</h1>
+          <div className="muted small">Edit, track, and recover orders</div>
         </div>
       </header>
 
