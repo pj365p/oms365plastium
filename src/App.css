@@ -12,6 +12,7 @@ html,
   height: 100%;
   background: #f8f9fc;
   color: #222;
+  overflow-x: hidden;
 }
 
 /* === APP CONTAINER === */
@@ -20,14 +21,13 @@ html,
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
 }
 
 /* === HEADER === */
 header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   padding: 24px 60px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -58,40 +58,39 @@ header {
   color: #555;
 }
 
-/* === MAIN LAYOUT (CENTERED + EXPANDED) === */
+/* === MAIN LAYOUT === */
 main {
   flex: 1;
   display: grid;
-  grid-template-columns: 450px 1fr;
-  gap: 50px;
+  grid-template-columns: 420px 1fr;
+  gap: 60px;
   align-items: flex-start;
   justify-content: center;
   width: 90%;
-  max-width: 1500px; /* ✅ Expand overall page area */
-  margin: 40px auto; /* ✅ Center align everything */
-  padding: 0 20px;
+  max-width: 1600px;
+  margin: 50px auto;
   box-sizing: border-box;
 }
 
 /* === LEFT PANEL (FORM) === */
 .left {
   background: #fff;
-  padding: 32px;
-  border-radius: 18px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
-  width: 100%;
-  min-height: 600px;
+  padding: 34px;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  min-width: 400px;
+  height: fit-content;
 }
 
-/* === RIGHT PANEL (ORDERS) === */
+/* === RIGHT PANEL (ORDER LIST) === */
 .right {
   background: #fff;
-  padding: 32px 40px;
-  border-radius: 18px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+  padding: 34px 44px;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   width: 100%;
   overflow-y: auto;
-  min-height: 600px;
+  min-height: 700px;
 }
 
 /* === ORDER FORM === */
@@ -104,7 +103,7 @@ main {
 
 .order-form .row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -112,7 +111,7 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #333;
 }
 
@@ -129,12 +128,6 @@ main {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 /* === BUTTONS === */
@@ -194,24 +187,25 @@ main {
 /* === TABS === */
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .tab {
   background: #f1f3f5;
   border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
+  border-radius: 12px;
+  padding: 10px 20px;
   cursor: pointer;
   transition: all 0.2s;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1rem;
 }
 
 .tab.active {
   background: #007bff;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
 .tab:hover:not(.active) {
@@ -223,15 +217,20 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: #fafbff;
-  padding: 24px 30px;
-  border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: transform 0.1s ease;
+  background: #fdfdff;
+  padding: 28px 34px;
+  border-radius: 18px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+}
+
+.order-row + .order-row {
+  margin-top: 20px;
 }
 
 .order-row:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.12);
 }
 
 /* === LEFT SIDE (DETAILS) === */
@@ -240,10 +239,10 @@ main {
 }
 
 .order-title {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #111;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   text-transform: uppercase;
 }
 
@@ -251,12 +250,12 @@ main {
 .order-meta {
   font-size: 1rem;
   color: #333;
-  line-height: 1.6;
-  margin-bottom: 6px;
+  line-height: 1.8;
+  margin-bottom: 8px;
 }
 
 .order-meta strong {
-  color: #111;
+  color: #000;
 }
 
 /* === TIMESTAMPS BELOW DISPATCH === */
@@ -265,7 +264,6 @@ main {
   color: #b4b4b4;
   margin-top: 10px;
   line-height: 1.4;
-  letter-spacing: 0.2px;
 }
 
 /* === RIGHT SIDE (BUTTONS) === */
@@ -279,9 +277,7 @@ main {
 
 .status-pill {
   align-self: flex-end;
-  margin-bottom: 6px;
-  display: inline-block;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 14px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -310,7 +306,7 @@ main {
   text-align: center;
   color: #888;
   font-size: 1rem;
-  margin-top: 24px;
+  margin-top: 30px;
 }
 
 /* === FOOTER === */
@@ -327,9 +323,8 @@ footer {
 @media (max-width: 1200px) {
   main {
     grid-template-columns: 1fr;
-    gap: 24px;
-    padding: 20px;
-    width: 95%;
+    gap: 30px;
+    padding: 0 20px;
   }
 
   .order-row {
