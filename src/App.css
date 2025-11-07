@@ -520,3 +520,34 @@ footer {
     font-size: 0.85rem;
   }
 }
+/* === AUTOCOMPLETE DROPDOWN === */
+.suggestion-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 4px;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-list li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #333;
+  background: #fff;
+  transition: background 0.15s ease;
+}
+
+.suggestion-list li:hover {
+  background: #007bff;
+  color: #fff;
+}
+
