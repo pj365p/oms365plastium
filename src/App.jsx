@@ -318,19 +318,29 @@ export default function App() {
     });
   }
 
-  // Delete or move to trash
   async function deleteOrder(order, permanent = false) {
+  try {
     if (!permanent) {
-      const cleanOrder = { ...order };
-      delete cleanOrder.id;
-      delete cleanOrder.deletedAt;
-      const trashData = { ...cleanOrder, deletedAt: nowISO() };
+      // Copy to trash
+      const trashData = { ...order, deletedAt: nowISO() };
       await setDoc(doc(trashRef, order.id), trashData);
-      await deleteDoc(doc(ordersRef, order.id));
+
+      // ✅ Remove from orders cleanly
+      const orderRef = doc(db, "orders", order.id);
+      await deleteDoc(orderRef);
+
+      console.log(`Moved ${order.customer}'s order to Trash.`);
     } else {
-      await deleteDoc(doc(trashRef, order.id));
+      // Permanent delete
+      const trashDocRef = doc(db, "deleted_orders", order.id);
+      await deleteDoc(trashDocRef);
+      console.log(`Permanently deleted order ${order.id}.`);
     }
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("❌ Could not delete this order. Try reloading the app.");
   }
+}
 
   // ✅ FIXED RESTORE: keeps same ID, fully re-syncs, and clears deletedAt
   async function restoreOrder(order) {
