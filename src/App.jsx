@@ -316,7 +316,24 @@ export default function App() {
             Total Pending Qty:
             <span className="pending-highlight">{totalPendingQty} MT</span>
           </div>
-
+          
+          <div className="right-header">
+            <div className="tabs">
+              {["all", "pending", "completed"].map((t) => (
+                <button
+                  key={t}
+                  className={`tab ${tab === t ? "active" : ""}`}
+                  onClick={() => setTab(t)}
+                >
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+          
+            <div className="filter-container">
+              <button className="filter-btn">🔍 Filter</button>
+            </div>
+          </div>
           <div className="tabs">
             {["all", "pending", "completed"].map((t) => (
               <button
