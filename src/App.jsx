@@ -185,6 +185,11 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
           <strong>Dispatch:</strong>{" "}
           {order.dispatchAt ? formatDateLocal(order.dispatchAt) : "No dispatch"}
         </div>
+
+        <div className="order-times">
+          Created: {formatDateLocal(order.createdAt)} <br />
+          Updated: {formatDateLocal(order.updatedAt)}
+        </div>
       </div>
 
       <div className="order-side">
@@ -239,7 +244,6 @@ export default function App() {
   const [deletedOrders, setDeletedOrders] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [tab, setTab] = useState("all");
-  const [q, setQ] = useState("");
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterCustomer, setFilterCustomer] = useState("");
@@ -264,14 +268,7 @@ export default function App() {
   const filtered = useMemo(() => {
     let list = tab === "trash" ? [...deletedOrders] : [...orders];
     if (tab !== "all" && tab !== "trash") list = list.filter((o) => o.status === tab);
-    if (q.trim()) {
-      const tq = q.toLowerCase();
-      list = list.filter(
-        (o) =>
-          o.customer.toLowerCase().includes(tq) ||
-          o.product.toLowerCase().includes(tq)
-      );
-    }
+
     if (filterCustomer.trim()) {
       const fc = filterCustomer.toLowerCase();
       list = list.filter((o) => o.customer.toLowerCase().includes(fc));
@@ -281,7 +278,7 @@ export default function App() {
       list = list.filter((o) => o.product.toLowerCase().includes(fp));
     }
     return list;
-  }, [orders, deletedOrders, tab, q, filterCustomer, filterProduct]);
+  }, [orders, deletedOrders, tab, filterCustomer, filterProduct]);
 
   const totalPendingQty = orders
     .filter((o) => o.status === "pending")
@@ -295,7 +292,6 @@ export default function App() {
   const formattedToday = today.toLocaleDateString("en-GB");
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
 
-  // ✅ Fixed delete & restore to move doc, not duplicate
   async function moveToTrash(o) {
     await setDoc(doc(db, "deleted_orders", o.id), {
       ...o,
@@ -370,20 +366,64 @@ export default function App() {
                   className={`tab ${tab === t ? "active" : ""}`}
                   onClick={() => setTab(t)}
                 >
-                  {t === "trash"
-                    ? "Trash"
-                    : t[0].toUpperCase() + t.slice(1)}
+                  {t === "trash" ? "Trash" : t[0].toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
+
+            {/* Filter Button */}
+            <div className="filter-container">
+              <button
+                className="filter-btn"
+                onClick={() => setShowFilter(!showFilter)}
+              >
+                🔍 Filter
+              </button>
+
+              {showFilter && (
+                <div className="filter-box">
+                  <label>
+                    Customer
+                    <input
+                      type="text"
+                      value={filterCustomer}
+                      onChange={(e) => setFilterCustomer(e.target.value)}
+                      placeholder="Enter customer name"
+                    />
+                  </label>
+                  <label>
+                    Product
+                    <input
+                      type="text"
+                      value={filterProduct}
+                      onChange={(e) => setFilterProduct(e.target.value)}
+                      placeholder="Enter product name"
+                    />
+                  </label>
+                  <div className="filter-actions">
+                    <button
+                      className="btn small primary"
+                      onClick={() => setShowFilter(false)}
+                    >
+                      Apply
+                    </button>
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        setFilterCustomer("");
+                        setFilterProduct("");
+                        setShowFilter(false);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <input
-            placeholder="Search..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="search-input"
-          />
+          {/* Removed Search Bar */}
 
           <div className="orders">
             {filtered.length === 0 ? (
