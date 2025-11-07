@@ -222,10 +222,10 @@ main {
 
 .order-title {
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #111;
   margin-bottom: 6px;
-  text-transform: capitalize; /* ✅ Always capitalize customer name */
+  text-transform: uppercase; /* ✅ Make customer name fully uppercase */
 }
 
 /* === META INFO === */
@@ -244,7 +244,7 @@ main {
 .order-times {
   font-size: 0.7rem;
   color: #bbb;
-  margin-top: 6px;
+  margin-top: 10px;
   line-height: 1.4;
   letter-spacing: 0.2px;
 }
