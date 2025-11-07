@@ -23,50 +23,74 @@ html,
   width: 100%;
 }
 
-/* === HEADER === */
-header {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 24px 80px;
+/* === HEADER (FIXED + CENTERED) === */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid #eee;
-}
-
-.brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  padding: 20px 80px;
+  border-bottom: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.brand img.logo {
-  width: 70px;
-  height: 70px;
-  border-radius: 14px;
+/* Left side — Logo + 365 PLASTIUM */
+.header-left {
+  position: absolute;
+  left: 80px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left .logo {
+  width: 55px;
+  height: 55px;
   object-fit: contain;
+  border-radius: 10px;
 }
 
-.brand h1 {
-  font-size: 1.9rem;
+.brand-side-text {
+  font-size: 1.1rem;
   font-weight: 600;
   color: #111;
+  letter-spacing: 0.3px;
 }
 
-.brand .muted {
+.blue-text {
+  color: #007bff;
+}
+
+/* Center — Order Book title */
+.header-center {
+  text-align: center;
+}
+
+.header-center h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.header-center .subtitle {
   font-size: 1rem;
   color: #555;
+  margin-top: 4px;
 }
 
 /* === MAIN LAYOUT (FULL WIDTH CENTERED) === */
 main {
   flex: 1;
   display: grid;
-  grid-template-columns: 350px 1fr; /* ✅ Slightly smaller form, much larger order list */
+  grid-template-columns: 350px 1fr;
   gap: 60px;
   align-items: flex-start;
   justify-content: center;
-  width: 95vw; /* ✅ Use almost full viewport width */
+  width: 95vw;
   margin: 40px auto;
   padding: 0 40px;
   box-sizing: border-box;
@@ -191,7 +215,7 @@ main {
   justify-content: space-between;
   align-items: flex-start;
   background: #fdfdff;
-  padding: 32px 40px; /* ✅ More breathing space */
+  padding: 32px 40px;
   border-radius: 18px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.15s ease;
@@ -319,5 +343,29 @@ footer {
 
   .btn.small {
     width: auto;
+  }
+
+  .app-header {
+    flex-direction: column;
+    justify-content: center;
+    padding: 16px 20px;
+  }
+
+  .header-left {
+    position: static;
+    margin-bottom: 10px;
+  }
+
+  .header-left .logo {
+    width: 45px;
+    height: 45px;
+  }
+
+  .header-center h1 {
+    font-size: 1.6rem;
+  }
+
+  .header-center .subtitle {
+    font-size: 0.9rem;
   }
 }
