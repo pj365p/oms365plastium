@@ -17,13 +17,11 @@ import {
 function nowISO() {
   return new Date().toISOString();
 }
-
 function daysAgo(days) {
   const d = new Date();
   d.setDate(d.getDate() - days);
   return d.toISOString();
 }
-
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -33,7 +31,7 @@ function formatDateLocal(iso) {
   return `${day}/${month}/${year}`;
 }
 
-/* === ORDER FORM WITH AUTOCOMPLETE === */
+/* === ORDER FORM === */
 function OrderForm({ onAdd }) {
   const [customer, setCustomer] = useState("");
   const [product, setProduct] = useState("");
@@ -180,114 +178,48 @@ function OrderForm({ onAdd }) {
   );
 }
 
-/* === SINGLE ORDER CARD === */
-function OrderRow({ order, onUpdateStatus, onDelete, onEdit, isTrash }) {
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    customer: order.customer,
-    product: order.product,
-    qty: order.qty,
-    dispatchAt: order.dispatchAt ? order.dispatchAt.slice(0, 10) : "",
-  });
-
-  const handleSave = () => {
-    if (!form.customer.trim() || !form.product.trim())
-      return alert("Fields required");
-    onEdit(order.id, form);
-    setEditing(false);
-  };
-
+/* === SINGLE ORDER === */
+function OrderRow({ order, onUpdateStatus, onDelete }) {
   return (
     <div className="order-row">
       <div className="order-main">
-        {editing ? (
-          <div className="edit-form">
-            <input
-              value={form.customer}
-              onChange={(e) => setForm({ ...form, customer: e.target.value })}
-            />
-            <input
-              value={form.product}
-              onChange={(e) => setForm({ ...form, product: e.target.value })}
-            />
-            <input
-              type="number"
-              value={form.qty}
-              min="1"
-              onChange={(e) => setForm({ ...form, qty: e.target.value })}
-            />
-            <input
-              type="date"
-              value={form.dispatchAt}
-              onChange={(e) =>
-                setForm({ ...form, dispatchAt: e.target.value })
-              }
-            />
-            <button className="btn small primary" onClick={handleSave}>
-              Save
-            </button>
-            <button className="btn small" onClick={() => setEditing(false)}>
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="order-title">{order.customer}</div>
-            <div className="order-meta">
-              <strong>Product:</strong> {order.product} <br />
-              <strong>Qty:</strong> {order.qty} MT <br />
-              <strong>Dispatch:</strong>{" "}
-              {order.dispatchAt
-                ? formatDateLocal(order.dispatchAt)
-                : "No dispatch"}
-            </div>
-            <div className="order-times">
-              Created: {formatDateLocal(order.createdAt)} <br />
-              Updated: {formatDateLocal(order.updatedAt)}
-            </div>
-          </>
-        )}
+        <div className="order-title">{order.customer}</div>
+        <div className="order-meta">
+          <strong>Product:</strong> {order.product} <br />
+          <strong>Qty:</strong> {order.qty} MT <br />
+          <strong>Dispatch:</strong>{" "}
+          {order.dispatchAt ? formatDateLocal(order.dispatchAt) : "No dispatch"}
+        </div>
       </div>
 
-      {!editing && (
-        <div className="order-side">
-          <div className={`status-pill ${order.status}`}>
-            {order.status.toUpperCase()}
-          </div>
-
-          <div className="order-actions">
-            {!isTrash && order.status === "pending" && (
-              <button
-                className="btn small"
-                onClick={() => onUpdateStatus(order.id, "completed")}
-              >
-                Mark Completed
-              </button>
-            )}
-            {!isTrash && order.status === "completed" && (
-              <button
-                className="btn small"
-                onClick={() => onUpdateStatus(order.id, "pending")}
-              >
-                Move to Pending
-              </button>
-            )}
-            {!isTrash && (
-              <>
-                <button className="btn small" onClick={() => setEditing(true)}>
-                  Edit
-                </button>
-                <button
-                  className="btn small danger"
-                  onClick={() => onDelete(order)}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
+      <div className="order-side">
+        <div className={`status-pill ${order.status}`}>
+          {order.status.toUpperCase()}
         </div>
-      )}
+        <div className="order-actions">
+          {order.status === "pending" ? (
+            <button
+              className="btn small"
+              onClick={() => onUpdateStatus(order.id, "completed")}
+            >
+              Mark Completed
+            </button>
+          ) : (
+            <button
+              className="btn small"
+              onClick={() => onUpdateStatus(order.id, "pending")}
+            >
+              Move to Pending
+            </button>
+          )}
+          <button
+            className="btn small danger"
+            onClick={() => onDelete(order)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -296,6 +228,8 @@ function OrderRow({ order, onUpdateStatus, onDelete, onEdit, isTrash }) {
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [tab, setTab] = useState("all");
+  const [q, setQ] = useState("");
 
   const ordersRef = collection(db, "orders");
 
@@ -306,11 +240,24 @@ export default function App() {
     return unsub;
   }, []);
 
+  const filtered = useMemo(() => {
+    let list = [...orders];
+    if (tab !== "all") list = list.filter((o) => o.status === tab);
+    if (q.trim()) {
+      const tq = q.toLowerCase();
+      list = list.filter(
+        (o) =>
+          o.customer.toLowerCase().includes(tq) ||
+          o.product.toLowerCase().includes(tq)
+      );
+    }
+    return list;
+  }, [orders, tab, q]);
+
   const totalPendingQty = orders
     .filter((o) => o.status === "pending")
     .reduce((sum, o) => sum + Number(o.qty || 0), 0);
 
-  // extract dispatch dates for dots
   const dispatchDates = orders
     .filter((o) => o.dispatchAt)
     .map((o) => o.dispatchAt.split("T")[0]);
@@ -344,7 +291,7 @@ export default function App() {
           {showCalendar && (
             <div className="calendar-popup">
               <Calendar
-                tileContent={({ date, view }) => {
+                tileContent={({ date }) => {
                   const iso = date.toISOString().split("T")[0];
                   if (dispatchDates.includes(iso)) {
                     return <div className="dot"></div>;
@@ -358,13 +305,53 @@ export default function App() {
       </header>
 
       <main>
+        <section className="left">
+          <OrderForm
+            onAdd={(o) => addDoc(ordersRef, o)}
+          />
+        </section>
+
         <section className="right">
           <div className="pending-summary">
             Total Pending Qty:
             <span className="pending-highlight">{totalPendingQty} MT</span>
           </div>
 
-          {/* your order list, tabs etc go here */}
+          <div className="tabs">
+            {["all", "pending", "completed"].map((t) => (
+              <button
+                key={t}
+                className={`tab ${tab === t ? "active" : ""}`}
+                onClick={() => setTab(t)}
+              >
+                {t[0].toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <input
+            placeholder="Search..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="search-input"
+          />
+
+          <div className="orders">
+            {filtered.length === 0 ? (
+              <div className="empty">No orders found.</div>
+            ) : (
+              filtered.map((o) => (
+                <OrderRow
+                  key={o.id}
+                  order={o}
+                  onUpdateStatus={(id, s) =>
+                    updateDoc(doc(db, "orders", id), { status: s, updatedAt: nowISO() })
+                  }
+                  onDelete={(o) => deleteDoc(doc(db, "orders", o.id))}
+                />
+              ))
+            )}
+          </div>
         </section>
       </main>
     </div>
