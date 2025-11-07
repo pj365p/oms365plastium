@@ -22,7 +22,6 @@ function daysAgo(days) {
   return d.toISOString();
 }
 
-// ✅ Updated to dd/mm/yyyy format
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -32,7 +31,7 @@ function formatDateLocal(iso) {
   return `${day}/${month}/${year}`;
 }
 
-/* ✅ UPDATED ORDER FORM WITH AUTOCOMPLETE */
+/* ✅ ORDER FORM WITH AUTOCOMPLETE */
 function OrderForm({ onAdd }) {
   const [customer, setCustomer] = useState("");
   const [product, setProduct] = useState("");
@@ -40,7 +39,6 @@ function OrderForm({ onAdd }) {
   const [dispatchAt, setDispatchAt] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // ✅ Your customer list
   const customerList = [
     "Shri Khemisati Polysacks",
     "Geotex Textile",
@@ -84,7 +82,6 @@ function OrderForm({ onAdd }) {
     "Visma Plastics",
   ];
 
-  // ✅ Filtered suggestions
   const filteredSuggestions = customerList.filter((name) =>
     name.toLowerCase().includes(customer.toLowerCase())
   );
@@ -121,12 +118,11 @@ function OrderForm({ onAdd }) {
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} // delay for click
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="Customer name"
             autoComplete="off"
           />
 
-          {/* ✅ Autocomplete dropdown */}
           {showSuggestions && filteredSuggestions.length > 0 && (
             <ul className="suggestion-list">
               {filteredSuggestions.map((s, i) => (
@@ -183,6 +179,7 @@ function OrderForm({ onAdd }) {
   );
 }
 
+/* ✅ ORDER ROW */
 function OrderRow({
   order,
   onUpdateStatus,
@@ -320,6 +317,7 @@ function OrderRow({
   );
 }
 
+/* ✅ MAIN APP */
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [deletedOrders, setDeletedOrders] = useState([]);
@@ -327,6 +325,11 @@ export default function App() {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState("createdAt");
   const [sortDir, setSortDir] = useState("desc");
+
+  // ✅ Filter states
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterCustomer, setFilterCustomer] = useState("");
+  const [filterProduct, setFilterProduct] = useState("");
 
   const ordersRef = collection(db, "orders");
   const trashRef = collection(db, "deleted_orders");
@@ -405,8 +408,10 @@ export default function App() {
   const filtered = useMemo(() => {
     const list = tab === "trash" ? deletedOrders : orders;
     let out = [...list];
+
     if (tab !== "all" && tab !== "trash")
       out = out.filter((o) => o.status === tab);
+
     if (q.trim()) {
       const tq = q.toLowerCase();
       out = out.filter(
@@ -415,6 +420,17 @@ export default function App() {
           o.product.toLowerCase().includes(tq)
       );
     }
+
+    if (filterCustomer.trim()) {
+      const fc = filterCustomer.toLowerCase();
+      out = out.filter((o) => o.customer.toLowerCase().includes(fc));
+    }
+
+    if (filterProduct.trim()) {
+      const fp = filterProduct.toLowerCase();
+      out = out.filter((o) => o.product.toLowerCase().includes(fp));
+    }
+
     out.sort((a, b) => {
       let A = a[sortKey] || "";
       let B = b[sortKey] || "";
@@ -427,7 +443,16 @@ export default function App() {
       return 0;
     });
     return out;
-  }, [orders, deletedOrders, tab, q, sortKey, sortDir]);
+  }, [
+    orders,
+    deletedOrders,
+    tab,
+    q,
+    sortKey,
+    sortDir,
+    filterCustomer,
+    filterProduct,
+  ]);
 
   return (
     <div className="app">
@@ -476,22 +501,76 @@ export default function App() {
         </section>
 
         <section className="right">
-          <div className="tabs">
-            {["all", "pending", "completed", "trash"].map((t) => (
+          {/* ✅ Tabs and Filter Button */}
+          <div className="right-header">
+            <div className="tabs">
+              {["all", "pending", "completed", "trash"].map((t) => (
+                <button
+                  key={t}
+                  className={`tab ${tab === t ? "active" : ""}`}
+                  onClick={() => setTab(t)}
+                >
+                  {t === "all"
+                    ? "All"
+                    : t === "trash"
+                    ? "Trash"
+                    : t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            <div className="filter-container">
               <button
-                key={t}
-                className={`tab ${tab === t ? "active" : ""}`}
-                onClick={() => setTab(t)}
+                className="btn small"
+                onClick={() => setShowFilter((prev) => !prev)}
               >
-                {t === "all"
-                  ? "All"
-                  : t === "trash"
-                  ? "Trash"
-                  : t[0].toUpperCase() + t.slice(1)}
+                🔍 Filter
               </button>
-            ))}
+
+              {showFilter && (
+                <div className="filter-box">
+                  <label>
+                    Customer
+                    <input
+                      type="text"
+                      value={filterCustomer}
+                      onChange={(e) => setFilterCustomer(e.target.value)}
+                      placeholder="Enter customer name"
+                    />
+                  </label>
+                  <label>
+                    Product
+                    <input
+                      type="text"
+                      value={filterProduct}
+                      onChange={(e) => setFilterProduct(e.target.value)}
+                      placeholder="Enter product name"
+                    />
+                  </label>
+                  <div className="filter-actions">
+                    <button
+                      className="btn small primary"
+                      onClick={() => setShowFilter(false)}
+                    >
+                      Apply
+                    </button>
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        setFilterCustomer("");
+                        setFilterProduct("");
+                        setShowFilter(false);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* ✅ Order list */}
           <div className="orders">
             {filtered.length === 0 ? (
               <div className="empty">
