@@ -22,6 +22,7 @@ function daysAgo(days) {
   return d.toISOString();
 }
 
+// ✅ Updated to dd/mm/yyyy format
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -176,13 +177,22 @@ function OrderRow({
           <>
             <div className="order-title">
               <strong>{order.customer}</strong>
-              <span className="muted"> — {order.product}</span>
             </div>
+
+            {/* ✅ New list-style product info */}
             <div className="order-meta">
-              Qty: {order.qty} ·{" "}
-              {order.dispatchAt
-                ? `Dispatch: ${formatDateLocal(order.dispatchAt)}`
-                : "No dispatch"}
+              <div>
+                <strong>Product:</strong> {order.product}
+              </div>
+              <div>
+                <strong>Qty:</strong> {order.qty} MT
+              </div>
+              <div>
+                <strong>Dispatch:</strong>{" "}
+                {order.dispatchAt
+                  ? formatDateLocal(order.dispatchAt)
+                  : "No dispatch"}
+              </div>
             </div>
           </>
         )}
@@ -193,6 +203,8 @@ function OrderRow({
           <div className={`status-pill ${order.status}`}>
             {order.status.toUpperCase()}
           </div>
+
+          {/* ✅ Light, small timestamp section */}
           <div className="order-times muted">
             <div>Created: {formatDateLocal(order.createdAt)}</div>
             <div>Updated: {formatDateLocal(order.updatedAt)}</div>
@@ -300,18 +312,15 @@ export default function App() {
     cleanup();
   }, []);
 
-  // Add new order
   async function addOrder(order) {
     await addDoc(ordersRef, order);
   }
 
-  // Update status
   async function updateStatus(id, status) {
     const ref = doc(db, "orders", id);
     await updateDoc(ref, { status, updatedAt: nowISO() });
   }
 
-  // Edit existing
   async function editOrder(id, updates) {
     const ref = doc(db, "orders", id);
     await updateDoc(ref, {
@@ -322,36 +331,26 @@ export default function App() {
   }
 
   async function deleteOrder(order, permanent = false) {
-  try {
-    if (!permanent) {
-      // Copy to trash
-      const trashData = { ...order, deletedAt: nowISO() };
-      await setDoc(doc(trashRef, order.id), trashData);
-
-      // ✅ Remove from orders cleanly
-      const orderRef = doc(db, "orders", order.id);
-      await deleteDoc(orderRef);
-
-      console.log(`Moved ${order.customer}'s order to Trash.`);
-    } else {
-      // Permanent delete
-      const trashDocRef = doc(db, "deleted_orders", order.id);
-      await deleteDoc(trashDocRef);
-      console.log(`Permanently deleted order ${order.id}.`);
+    try {
+      if (!permanent) {
+        const trashData = { ...order, deletedAt: nowISO() };
+        await setDoc(doc(trashRef, order.id), trashData);
+        await deleteDoc(doc(ordersRef, order.id));
+      } else {
+        await deleteDoc(doc(trashRef, order.id));
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("❌ Could not delete this order. Try reloading the app.");
     }
-  } catch (err) {
-    console.error("Delete error:", err);
-    alert("❌ Could not delete this order. Try reloading the app.");
   }
-}
 
-  // ✅ FIXED RESTORE: keeps same ID, fully re-syncs, and clears deletedAt
   async function restoreOrder(order) {
     const restored = { ...order, status: "pending" };
     delete restored.deletedAt;
     await setDoc(doc(ordersRef, order.id), restored);
     await deleteDoc(doc(trashRef, order.id));
-    alert("✅ Order restored successfully and reactivated!");
+    alert("✅ Order restored successfully!");
   }
 
   const filtered = useMemo(() => {
