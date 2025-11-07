@@ -10,18 +10,12 @@ import {
   deleteDoc,
   doc,
   updateDoc,
-  getDocs,
-  setDoc,
 } from "firebase/firestore";
 
 function nowISO() {
   return new Date().toISOString();
 }
-function daysAgo(days) {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString();
-}
+
 function formatDateLocal(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -178,7 +172,7 @@ function OrderForm({ onAdd }) {
   );
 }
 
-/* === SINGLE ORDER === */
+/* === ORDER ROW === */
 function OrderRow({ order, onUpdateStatus, onDelete }) {
   return (
     <div className="order-row">
@@ -212,10 +206,7 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
               Move to Pending
             </button>
           )}
-          <button
-            className="btn small danger"
-            onClick={() => onDelete(order)}
-          >
+          <button className="btn small danger" onClick={() => onDelete(order)}>
             Delete
           </button>
         </div>
@@ -231,6 +222,11 @@ export default function App() {
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
 
+  // 🔧 FIX: add these missing states
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterCustomer, setFilterCustomer] = useState("");
+  const [filterProduct, setFilterProduct] = useState("");
+
   const ordersRef = collection(db, "orders");
 
   useEffect(() => {
@@ -240,6 +236,7 @@ export default function App() {
     return unsub;
   }, []);
 
+  // Apply tab, search, and filter together
   const filtered = useMemo(() => {
     let list = [...orders];
     if (tab !== "all") list = list.filter((o) => o.status === tab);
@@ -251,8 +248,16 @@ export default function App() {
           o.product.toLowerCase().includes(tq)
       );
     }
+    if (filterCustomer.trim()) {
+      const fc = filterCustomer.toLowerCase();
+      list = list.filter((o) => o.customer.toLowerCase().includes(fc));
+    }
+    if (filterProduct.trim()) {
+      const fp = filterProduct.toLowerCase();
+      list = list.filter((o) => o.product.toLowerCase().includes(fp));
+    }
     return list;
-  }, [orders, tab, q]);
+  }, [orders, tab, q, filterCustomer, filterProduct]);
 
   const totalPendingQty = orders
     .filter((o) => o.status === "pending")
@@ -306,9 +311,7 @@ export default function App() {
 
       <main>
         <section className="left">
-          <OrderForm
-            onAdd={(o) => addDoc(ordersRef, o)}
-          />
+          <OrderForm onAdd={(o) => addDoc(ordersRef, o)} />
         </section>
 
         <section className="right">
@@ -317,8 +320,7 @@ export default function App() {
             <span className="pending-highlight">{totalPendingQty} MT</span>
           </div>
 
-          
-
+          {/* === Tabs + Filter Button === */}
           <div className="right-header">
             <div className="tabs">
               {["all", "pending", "completed"].map((t) => (
@@ -331,7 +333,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-          
+
             <div className="filter-container">
               <button
                 className="filter-btn"
@@ -339,7 +341,7 @@ export default function App() {
               >
                 🔍 Filter
               </button>
-          
+
               {showFilter && (
                 <div className="filter-box">
                   <label>
@@ -382,20 +384,6 @@ export default function App() {
               )}
             </div>
           </div>
-        
-
-          
-          <div className="tabs">
-            {["all", "pending", "completed"].map((t) => (
-              <button
-                key={t}
-                className={`tab ${tab === t ? "active" : ""}`}
-                onClick={() => setTab(t)}
-              >
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
 
           <input
             placeholder="Search..."
@@ -413,7 +401,10 @@ export default function App() {
                   key={o.id}
                   order={o}
                   onUpdateStatus={(id, s) =>
-                    updateDoc(doc(db, "orders", id), { status: s, updatedAt: nowISO() })
+                    updateDoc(doc(db, "orders", id), {
+                      status: s,
+                      updatedAt: nowISO(),
+                    })
                   }
                   onDelete={(o) => deleteDoc(doc(db, "orders", o.id))}
                 />
