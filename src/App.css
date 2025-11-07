@@ -28,7 +28,7 @@ header {
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 24px 60px;
+  padding: 24px 80px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border-bottom: 1px solid #eee;
@@ -58,17 +58,17 @@ header {
   color: #555;
 }
 
-/* === MAIN LAYOUT === */
+/* === MAIN LAYOUT (FULL WIDTH CENTERED) === */
 main {
   flex: 1;
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 350px 1fr; /* ✅ Slightly smaller form, much larger order list */
   gap: 60px;
   align-items: flex-start;
   justify-content: center;
-  width: 90%;
-  max-width: 1600px;
-  margin: 50px auto;
+  width: 95vw; /* ✅ Use almost full viewport width */
+  margin: 40px auto;
+  padding: 0 40px;
   box-sizing: border-box;
 }
 
@@ -78,18 +78,17 @@ main {
   padding: 34px;
   border-radius: 20px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
-  min-width: 400px;
   height: fit-content;
+  min-width: 340px;
 }
 
 /* === RIGHT PANEL (ORDER LIST) === */
 .right {
   background: #fff;
-  padding: 34px 44px;
+  padding: 40px 60px;
   border-radius: 20px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   width: 100%;
-  overflow-y: auto;
   min-height: 700px;
 }
 
@@ -101,14 +100,7 @@ main {
   margin-bottom: 24px;
 }
 
-.order-form .row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .order-form label {
-  flex: 1;
   display: flex;
   flex-direction: column;
   font-size: 0.9rem;
@@ -165,25 +157,6 @@ main {
   text-align: center;
 }
 
-/* === CONTROLS === */
-.controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.controls input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-.selects {
-  display: flex;
-  gap: 10px;
-}
-
 /* === TABS === */
 .tabs {
   display: flex;
@@ -218,14 +191,15 @@ main {
   justify-content: space-between;
   align-items: flex-start;
   background: #fdfdff;
-  padding: 28px 34px;
+  padding: 32px 40px; /* ✅ More breathing space */
   border-radius: 18px;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.15s ease;
+  width: 100%;
 }
 
 .order-row + .order-row {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .order-row:hover {
@@ -246,7 +220,6 @@ main {
   text-transform: uppercase;
 }
 
-/* === META INFO === */
 .order-meta {
   font-size: 1rem;
   color: #333;
