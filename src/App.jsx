@@ -295,6 +295,24 @@ export default function App() {
   const formattedToday = today.toLocaleDateString("en-GB");
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
 
+  // ✅ Fixed delete & restore to move doc, not duplicate
+  async function moveToTrash(o) {
+    await setDoc(doc(db, "deleted_orders", o.id), {
+      ...o,
+      deletedAt: nowISO(),
+    });
+    await deleteDoc(doc(db, "orders", o.id));
+  }
+
+  async function restoreFromTrash(o) {
+    await setDoc(doc(db, "orders", o.id), {
+      ...o,
+      restoredAt: nowISO(),
+      status: "pending",
+    });
+    await deleteDoc(doc(db, "deleted_orders", o.id));
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -358,56 +376,6 @@ export default function App() {
                 </button>
               ))}
             </div>
-
-            <div className="filter-container">
-              <button
-                className="filter-btn"
-                onClick={() => setShowFilter(!showFilter)}
-              >
-                🔍 Filter
-              </button>
-
-              {showFilter && (
-                <div className="filter-box">
-                  <label>
-                    Customer
-                    <input
-                      type="text"
-                      value={filterCustomer}
-                      onChange={(e) => setFilterCustomer(e.target.value)}
-                      placeholder="Enter customer name"
-                    />
-                  </label>
-                  <label>
-                    Product
-                    <input
-                      type="text"
-                      value={filterProduct}
-                      onChange={(e) => setFilterProduct(e.target.value)}
-                      placeholder="Enter product name"
-                    />
-                  </label>
-                  <div className="filter-actions">
-                    <button
-                      className="btn small primary"
-                      onClick={() => setShowFilter(false)}
-                    >
-                      Apply
-                    </button>
-                    <button
-                      className="btn small"
-                      onClick={() => {
-                        setFilterCustomer("");
-                        setFilterProduct("");
-                        setShowFilter(false);
-                      }}
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           <input
@@ -432,21 +400,8 @@ export default function App() {
                       updatedAt: nowISO(),
                     })
                   }
-                  onDelete={async (o) => {
-                    await addDoc(collection(db, "deleted_orders"), {
-                      ...o,
-                      deletedAt: nowISO(),
-                    });
-                    await deleteDoc(doc(db, "orders", o.id));
-                  }}
-                  onRestore={async (o) => {
-                    await addDoc(collection(db, "orders"), {
-                      ...o,
-                      restoredAt: nowISO(),
-                      status: "pending",
-                    });
-                    await deleteDoc(doc(db, "deleted_orders", o.id));
-                  }}
+                  onDelete={moveToTrash}
+                  onRestore={restoreFromTrash}
                 />
               ))
             )}
