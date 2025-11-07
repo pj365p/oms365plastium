@@ -31,7 +31,7 @@ function formatDateLocal(iso) {
   return `${day}/${month}/${year}`;
 }
 
-/* ✅ ORDER FORM WITH AUTOCOMPLETE */
+/* === ORDER FORM WITH AUTOCOMPLETE === */
 function OrderForm({ onAdd }) {
   const [customer, setCustomer] = useState("");
   const [product, setProduct] = useState("");
@@ -122,7 +122,6 @@ function OrderForm({ onAdd }) {
             placeholder="Customer name"
             autoComplete="off"
           />
-
           {showSuggestions && filteredSuggestions.length > 0 && (
             <ul className="suggestion-list">
               {filteredSuggestions.map((s, i) => (
@@ -179,15 +178,8 @@ function OrderForm({ onAdd }) {
   );
 }
 
-/* ✅ ORDER ROW */
-function OrderRow({
-  order,
-  onUpdateStatus,
-  onDelete,
-  onRestore,
-  onEdit,
-  isTrash,
-}) {
+/* === SINGLE ORDER CARD === */
+function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     customer: order.customer,
@@ -250,12 +242,6 @@ function OrderRow({
             <div className="order-times">
               Created: {formatDateLocal(order.createdAt)} <br />
               Updated: {formatDateLocal(order.updatedAt)}
-              {isTrash && (
-                <>
-                  <br />
-                  Deleted: {formatDateLocal(order.deletedAt)}
-                </>
-              )}
             </div>
           </>
         )}
@@ -297,19 +283,6 @@ function OrderRow({
                 </button>
               </>
             )}
-            {isTrash && (
-              <>
-                <button className="btn small" onClick={() => onRestore(order)}>
-                  Restore
-                </button>
-                <button
-                  className="btn small danger"
-                  onClick={() => onDelete(order, true)}
-                >
-                  Delete Permanently
-                </button>
-              </>
-            )}
           </div>
         </div>
       )}
@@ -317,7 +290,7 @@ function OrderRow({
   );
 }
 
-/* ✅ MAIN APP */
+/* === MAIN APP === */
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [deletedOrders, setDeletedOrders] = useState([]);
@@ -325,93 +298,33 @@ export default function App() {
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState("createdAt");
   const [sortDir, setSortDir] = useState("desc");
-
-  // ✅ Filter states
   const [showFilter, setShowFilter] = useState(false);
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterProduct, setFilterProduct] = useState("");
+
+  const today = formatDateLocal(new Date().toISOString());
 
   const ordersRef = collection(db, "orders");
   const trashRef = collection(db, "deleted_orders");
 
   useEffect(() => {
     const unsub = onSnapshot(ordersRef, (snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setOrders(data);
+      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, []);
 
   useEffect(() => {
     const unsub = onSnapshot(trashRef, (snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setDeletedOrders(data);
+      setDeletedOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, []);
 
-  useEffect(() => {
-    const cleanup = async () => {
-      const tenDaysAgo = daysAgo(10);
-      const snapshot = await getDocs(trashRef);
-      snapshot.forEach(async (docu) => {
-        const data = docu.data();
-        if (data.deletedAt < tenDaysAgo) {
-          await deleteDoc(doc(trashRef, docu.id));
-        }
-      });
-    };
-    cleanup();
-  }, []);
-
-  async function addOrder(order) {
-    await addDoc(ordersRef, order);
-  }
-
-  async function updateStatus(id, status) {
-    const ref = doc(db, "orders", id);
-    await updateDoc(ref, { status, updatedAt: nowISO() });
-  }
-
-  async function editOrder(id, updates) {
-    const ref = doc(db, "orders", id);
-    await updateDoc(ref, {
-      ...updates,
-      qty: Number(updates.qty) || 1,
-      updatedAt: nowISO(),
-    });
-  }
-
-  async function deleteOrder(order, permanent = false) {
-    try {
-      if (!permanent) {
-        const trashData = { ...order, deletedAt: nowISO() };
-        await setDoc(doc(trashRef, order.id), trashData);
-        await deleteDoc(doc(ordersRef, order.id));
-      } else {
-        await deleteDoc(doc(trashRef, order.id));
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("❌ Could not delete this order. Try reloading the app.");
-    }
-  }
-
-  async function restoreOrder(order) {
-    const restored = { ...order, status: "pending" };
-    delete restored.deletedAt;
-    await setDoc(doc(ordersRef, order.id), restored);
-    await deleteDoc(doc(trashRef, order.id));
-    alert("✅ Order restored successfully!");
-  }
-
   const filtered = useMemo(() => {
     const list = tab === "trash" ? deletedOrders : orders;
     let out = [...list];
-
-    if (tab !== "all" && tab !== "trash")
-      out = out.filter((o) => o.status === tab);
-
+    if (tab !== "all" && tab !== "trash") out = out.filter((o) => o.status === tab);
     if (q.trim()) {
       const tq = q.toLowerCase();
       out = out.filter(
@@ -420,18 +333,15 @@ export default function App() {
           o.product.toLowerCase().includes(tq)
       );
     }
-
     if (filterCustomer.trim()) {
       const fc = filterCustomer.toLowerCase();
       out = out.filter((o) => o.customer.toLowerCase().includes(fc));
     }
-
     if (filterProduct.trim()) {
       const fp = filterProduct.toLowerCase();
       out = out.filter((o) => o.product.toLowerCase().includes(fp));
     }
-
-    out.sort((a, b) => {
+    return out.sort((a, b) => {
       let A = a[sortKey] || "";
       let B = b[sortKey] || "";
       if (sortKey === "qty") {
@@ -442,17 +352,11 @@ export default function App() {
       if (A > B) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-    return out;
-  }, [
-    orders,
-    deletedOrders,
-    tab,
-    q,
-    sortKey,
-    sortDir,
-    filterCustomer,
-    filterProduct,
-  ]);
+  }, [orders, deletedOrders, tab, q, sortKey, sortDir, filterCustomer, filterProduct]);
+
+  const totalPendingQty = orders
+    .filter((o) => o.status === "pending")
+    .reduce((sum, o) => sum + Number(o.qty || 0), 0);
 
   return (
     <div className="app">
@@ -463,16 +367,18 @@ export default function App() {
             <span className="blue-text">365 PLASTIUM</span>
           </span>
         </div>
-
         <div className="header-center">
           <h1>Order Book</h1>
           <p className="subtitle">Edit, track, and recover orders</p>
+        </div>
+        <div className="header-right">
+          <div className="date-display">{today}</div>
         </div>
       </header>
 
       <main>
         <section className="left">
-          {tab !== "trash" && <OrderForm onAdd={addOrder} />}
+          {tab !== "trash" && <OrderForm onAdd={(o) => addDoc(ordersRef, o)} />}
           <div className="controls">
             <input
               placeholder="Search..."
@@ -480,19 +386,13 @@ export default function App() {
               onChange={(e) => setQ(e.target.value)}
             />
             <div className="selects">
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value)}
-              >
+              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
                 <option value="createdAt">Created</option>
                 <option value="dispatchAt">Dispatch</option>
                 <option value="qty">Qty</option>
                 <option value="customer">Customer</option>
               </select>
-              <select
-                value={sortDir}
-                onChange={(e) => setSortDir(e.target.value)}
-              >
+              <select value={sortDir} onChange={(e) => setSortDir(e.target.value)}>
                 <option value="desc">Desc</option>
                 <option value="asc">Asc</option>
               </select>
@@ -501,7 +401,6 @@ export default function App() {
         </section>
 
         <section className="right">
-          {/* ✅ Tabs and Filter Button */}
           <div className="right-header">
             <div className="tabs">
               {["all", "pending", "completed", "trash"].map((t) => (
@@ -518,15 +417,10 @@ export default function App() {
                 </button>
               ))}
             </div>
-
             <div className="filter-container">
-              <button
-                className="btn small"
-                onClick={() => setShowFilter((prev) => !prev)}
-              >
+              <button className="btn small" onClick={() => setShowFilter(!showFilter)}>
                 🔍 Filter
               </button>
-
               {showFilter && (
                 <div className="filter-box">
                   <label>
@@ -570,22 +464,39 @@ export default function App() {
             </div>
           </div>
 
-          {/* ✅ Order list */}
+          {/* === Total Pending Qty === */}
+          <div className="pending-summary">
+            Total Pending Qty:{" "}
+            <span className="pending-highlight">{totalPendingQty} MT</span>
+          </div>
+
           <div className="orders">
             {filtered.length === 0 ? (
-              <div className="empty">
-                No {tab === "trash" ? "deleted" : ""} orders found.
-              </div>
+              <div className="empty">No {tab === "trash" ? "deleted" : ""} orders found.</div>
             ) : (
               filtered.map((o) => (
                 <OrderRow
                   key={o.id}
                   order={o}
-                  onUpdateStatus={updateStatus}
-                  onDelete={deleteOrder}
-                  onRestore={restoreOrder}
-                  onEdit={editOrder}
-                  isTrash={tab === "trash"}
+                  onUpdateStatus={(id, s) =>
+                    updateDoc(doc(db, "orders", id), { status: s, updatedAt: nowISO() })
+                  }
+                  onDelete={(o, p) =>
+                    p
+                      ? deleteDoc(doc(collection(db, "deleted_orders"), o.id))
+                      : (setDoc(doc(collection(db, "deleted_orders"), o.id), {
+                          ...o,
+                          deletedAt: nowISO(),
+                        }),
+                        deleteDoc(doc(collection(db, "orders"), o.id)))
+                  }
+                  onEdit={(id, updates) =>
+                    updateDoc(doc(db, "orders", id), {
+                      ...updates,
+                      qty: Number(updates.qty) || 1,
+                      updatedAt: nowISO(),
+                    })
+                  }
                 />
               ))
             )}
