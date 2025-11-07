@@ -174,22 +174,72 @@ function OrderForm({ onAdd }) {
 }
 
 /* === ORDER ROW === */
-function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
+function OrderRow({ order, onUpdateStatus, onDelete, onRestore, onEdit, isTrash }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    customer: order.customer,
+    product: order.product,
+    qty: order.qty,
+    dispatchAt: order.dispatchAt ? order.dispatchAt.slice(0, 10) : "",
+  });
+
+  const handleSave = () => {
+    if (!form.customer.trim() || !form.product.trim())
+      return alert("Fields required");
+    onEdit(order.id, form);
+    setEditing(false);
+  };
+
   return (
     <div className="order-row">
       <div className="order-main">
-        <div className="order-title">{order.customer}</div>
-        <div className="order-meta">
-          <strong>Product:</strong> {order.product} <br />
-          <strong>Qty:</strong> {order.qty} MT <br />
-          <strong>Dispatch:</strong>{" "}
-          {order.dispatchAt ? formatDateLocal(order.dispatchAt) : "No dispatch"}
-        </div>
-
-        <div className="order-times">
-          Created: {formatDateLocal(order.createdAt)} <br />
-          Updated: {formatDateLocal(order.updatedAt)}
-        </div>
+        {editing ? (
+          <div className="edit-form">
+            <input
+              value={form.customer}
+              onChange={(e) => setForm({ ...form, customer: e.target.value })}
+            />
+            <input
+              value={form.product}
+              onChange={(e) => setForm({ ...form, product: e.target.value })}
+            />
+            <input
+              type="number"
+              value={form.qty}
+              min="1"
+              onChange={(e) => setForm({ ...form, qty: e.target.value })}
+            />
+            <input
+              type="date"
+              value={form.dispatchAt}
+              onChange={(e) =>
+                setForm({ ...form, dispatchAt: e.target.value })
+              }
+            />
+            <button className="btn small primary" onClick={handleSave}>
+              Save
+            </button>
+            <button className="btn small" onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="order-title">{order.customer}</div>
+            <div className="order-meta">
+              <strong>Product:</strong> {order.product} <br />
+              <strong>Qty:</strong> {order.qty} MT <br />
+              <strong>Dispatch:</strong>{" "}
+              {order.dispatchAt
+                ? formatDateLocal(order.dispatchAt)
+                : "No dispatch"}
+            </div>
+            <div className="order-times">
+              Created: {formatDateLocal(order.createdAt)} <br />
+              Updated: {formatDateLocal(order.updatedAt)}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="order-side">
@@ -197,42 +247,45 @@ function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
           {isTrash ? "DELETED" : order.status.toUpperCase()}
         </div>
 
-        <div className="order-actions">
-          {!isTrash ? (
-            <>
-              {order.status === "pending" ? (
-                <button
-                  className="btn small"
-                  onClick={() => onUpdateStatus(order.id, "completed")}
-                >
-                  Mark Completed
-                </button>
-              ) : (
-                <button
-                  className="btn small"
-                  onClick={() => onUpdateStatus(order.id, "pending")}
-                >
-                  Move to Pending
-                </button>
-              )}
-              <button className="btn small danger" onClick={() => onDelete(order)}>
-                Delete
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="btn small" onClick={() => onRestore(order)}>
-                Restore
-              </button>
+        {!isTrash && !editing && (
+          <div className="order-actions">
+            {order.status === "pending" ? (
               <button
-                className="btn small danger"
-                onClick={() => deleteDoc(doc(db, "deleted_orders", order.id))}
+                className="btn small"
+                onClick={() => onUpdateStatus(order.id, "completed")}
               >
-                Delete Permanently
+                Mark Completed
               </button>
-            </>
-          )}
-        </div>
+            ) : (
+              <button
+                className="btn small"
+                onClick={() => onUpdateStatus(order.id, "pending")}
+              >
+                Move to Pending
+              </button>
+            )}
+            <button className="btn small" onClick={() => setEditing(true)}>
+              Edit
+            </button>
+            <button className="btn small danger" onClick={() => onDelete(order)}>
+              Delete
+            </button>
+          </div>
+        )}
+
+        {isTrash && (
+          <div className="order-actions">
+            <button className="btn small" onClick={() => onRestore(order)}>
+              Restore
+            </button>
+            <button
+              className="btn small danger"
+              onClick={() => deleteDoc(doc(db, "deleted_orders", order.id))}
+            >
+              Delete Permanently
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -244,7 +297,6 @@ export default function App() {
   const [deletedOrders, setDeletedOrders] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [tab, setTab] = useState("all");
-
   const [showFilter, setShowFilter] = useState(false);
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterProduct, setFilterProduct] = useState("");
@@ -268,7 +320,6 @@ export default function App() {
   const filtered = useMemo(() => {
     let list = tab === "trash" ? [...deletedOrders] : [...orders];
     if (tab !== "all" && tab !== "trash") list = list.filter((o) => o.status === tab);
-
     if (filterCustomer.trim()) {
       const fc = filterCustomer.toLowerCase();
       list = list.filter((o) => o.customer.toLowerCase().includes(fc));
@@ -293,10 +344,7 @@ export default function App() {
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
 
   async function moveToTrash(o) {
-    await setDoc(doc(db, "deleted_orders", o.id), {
-      ...o,
-      deletedAt: nowISO(),
-    });
+    await setDoc(doc(db, "deleted_orders", o.id), { ...o, deletedAt: nowISO() });
     await deleteDoc(doc(db, "orders", o.id));
   }
 
@@ -307,6 +355,13 @@ export default function App() {
       status: "pending",
     });
     await deleteDoc(doc(db, "deleted_orders", o.id));
+  }
+
+  async function editOrder(id, updatedData) {
+    await updateDoc(doc(db, "orders", id), {
+      ...updatedData,
+      updatedAt: nowISO(),
+    });
   }
 
   return (
@@ -423,8 +478,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Removed Search Bar */}
-
           <div className="orders">
             {filtered.length === 0 ? (
               <div className="empty">No orders found.</div>
@@ -440,6 +493,7 @@ export default function App() {
                       updatedAt: nowISO(),
                     })
                   }
+                  onEdit={editOrder}
                   onDelete={moveToTrash}
                   onRestore={restoreFromTrash}
                 />
