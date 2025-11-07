@@ -138,38 +138,27 @@ function OrderRow({
           <div className="edit-form">
             <input
               value={form.customer}
-              onChange={(e) =>
-                setForm({ ...form, customer: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, customer: e.target.value })}
             />
             <input
               value={form.product}
-              onChange={(e) =>
-                setForm({ ...form, product: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, product: e.target.value })}
             />
             <input
               type="number"
               value={form.qty}
               min="1"
-              onChange={(e) =>
-                setForm({ ...form, qty: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, qty: e.target.value })}
             />
             <input
               type="date"
               value={form.dispatchAt}
-              onChange={(e) =>
-                setForm({ ...form, dispatchAt: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, dispatchAt: e.target.value })}
             />
             <button className="btn small primary" onClick={handleSave}>
               Save
             </button>
-            <button
-              className="btn small"
-              onClick={() => setEditing(false)}
-            >
+            <button className="btn small" onClick={() => setEditing(false)}>
               Cancel
             </button>
           </div>
@@ -184,7 +173,6 @@ function OrderRow({
                 ? formatDateLocal(order.dispatchAt)
                 : "No dispatch"}
             </div>
-            {/* ✅ Move timestamps here */}
             <div className="order-times">
               Created: {formatDateLocal(order.createdAt)} <br />
               Updated: {formatDateLocal(order.updatedAt)}
@@ -374,20 +362,22 @@ export default function App() {
 
   return (
     <div className="app">
-      <header>
+      {/* ✅ Header */}
+      <header className="app-header">
         <div className="header-left">
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
-          <span className="brand-text">
+          <span className="brand-side-text">
             <span className="blue-text">365 PLASTIUM</span>
           </span>
         </div>
-      
+
         <div className="header-center">
           <h1>Order Book</h1>
-          <div className="muted small">Edit, track, and recover orders</div>
+          <p className="subtitle">Edit, track, and recover orders</p>
         </div>
       </header>
 
+      {/* ✅ Main Content */}
       <main>
         <section className="left">
           {tab !== "trash" && <OrderForm onAdd={addOrder} />}
