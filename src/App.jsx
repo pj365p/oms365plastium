@@ -175,24 +175,25 @@ function OrderRow({
           </div>
         ) : (
           <>
-            <div className="order-title">
-              <strong>{order.customer}</strong>
-            </div>
-
-            {/* ✅ New list-style product info */}
+            <div className="order-title">{order.customer}</div>
             <div className="order-meta">
-              <div>
-                <strong>Product:</strong> {order.product}
-              </div>
-              <div>
-                <strong>Qty:</strong> {order.qty} MT
-              </div>
-              <div>
-                <strong>Dispatch:</strong>{" "}
-                {order.dispatchAt
-                  ? formatDateLocal(order.dispatchAt)
-                  : "No dispatch"}
-              </div>
+              <strong>Product:</strong> {order.product} <br />
+              <strong>Qty:</strong> {order.qty} MT <br />
+              <strong>Dispatch:</strong>{" "}
+              {order.dispatchAt
+                ? formatDateLocal(order.dispatchAt)
+                : "No dispatch"}
+            </div>
+            {/* ✅ Move timestamps here */}
+            <div className="order-times">
+              Created: {formatDateLocal(order.createdAt)} <br />
+              Updated: {formatDateLocal(order.updatedAt)}
+              {isTrash && (
+                <>
+                  <br />
+                  Deleted: {formatDateLocal(order.deletedAt)}
+                </>
+              )}
             </div>
           </>
         )}
@@ -202,15 +203,6 @@ function OrderRow({
         <div className="order-side">
           <div className={`status-pill ${order.status}`}>
             {order.status.toUpperCase()}
-          </div>
-
-          {/* ✅ Light, small timestamp section */}
-          <div className="order-times muted">
-            <div>Created: {formatDateLocal(order.createdAt)}</div>
-            <div>Updated: {formatDateLocal(order.updatedAt)}</div>
-            {isTrash && (
-              <div>Deleted: {formatDateLocal(order.deletedAt)}</div>
-            )}
           </div>
 
           <div className="order-actions">
