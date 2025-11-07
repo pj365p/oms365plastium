@@ -10,6 +10,7 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 
 function nowISO() {
@@ -173,7 +174,7 @@ function OrderForm({ onAdd }) {
 }
 
 /* === ORDER ROW === */
-function OrderRow({ order, onUpdateStatus, onDelete }) {
+function OrderRow({ order, onUpdateStatus, onDelete, onRestore, isTrash }) {
   return (
     <div className="order-row">
       <div className="order-main">
@@ -187,28 +188,45 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
       </div>
 
       <div className="order-side">
-        <div className={`status-pill ${order.status}`}>
-          {order.status.toUpperCase()}
+        <div className={`status-pill ${order.status || "trash"}`}>
+          {isTrash ? "DELETED" : order.status.toUpperCase()}
         </div>
+
         <div className="order-actions">
-          {order.status === "pending" ? (
-            <button
-              className="btn small"
-              onClick={() => onUpdateStatus(order.id, "completed")}
-            >
-              Mark Completed
-            </button>
+          {!isTrash ? (
+            <>
+              {order.status === "pending" ? (
+                <button
+                  className="btn small"
+                  onClick={() => onUpdateStatus(order.id, "completed")}
+                >
+                  Mark Completed
+                </button>
+              ) : (
+                <button
+                  className="btn small"
+                  onClick={() => onUpdateStatus(order.id, "pending")}
+                >
+                  Move to Pending
+                </button>
+              )}
+              <button className="btn small danger" onClick={() => onDelete(order)}>
+                Delete
+              </button>
+            </>
           ) : (
-            <button
-              className="btn small"
-              onClick={() => onUpdateStatus(order.id, "pending")}
-            >
-              Move to Pending
-            </button>
+            <>
+              <button className="btn small" onClick={() => onRestore(order)}>
+                Restore
+              </button>
+              <button
+                className="btn small danger"
+                onClick={() => deleteDoc(doc(db, "deleted_orders", order.id))}
+              >
+                Delete Permanently
+              </button>
+            </>
           )}
-          <button className="btn small danger" onClick={() => onDelete(order)}>
-            Delete
-          </button>
         </div>
       </div>
     </div>
@@ -218,28 +236,34 @@ function OrderRow({ order, onUpdateStatus, onDelete }) {
 /* === MAIN APP === */
 export default function App() {
   const [orders, setOrders] = useState([]);
+  const [deletedOrders, setDeletedOrders] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
 
-  // 🔧 FIX: add these missing states
   const [showFilter, setShowFilter] = useState(false);
   const [filterCustomer, setFilterCustomer] = useState("");
   const [filterProduct, setFilterProduct] = useState("");
 
   const ordersRef = collection(db, "orders");
+  const trashRef = collection(db, "deleted_orders");
 
   useEffect(() => {
-    const unsub = onSnapshot(ordersRef, (snap) => {
+    const unsub1 = onSnapshot(ordersRef, (snap) => {
       setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
-    return unsub;
+    const unsub2 = onSnapshot(trashRef, (snap) => {
+      setDeletedOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => {
+      unsub1();
+      unsub2();
+    };
   }, []);
 
-  // Apply tab, search, and filter together
   const filtered = useMemo(() => {
-    let list = [...orders];
-    if (tab !== "all") list = list.filter((o) => o.status === tab);
+    let list = tab === "trash" ? [...deletedOrders] : [...orders];
+    if (tab !== "all" && tab !== "trash") list = list.filter((o) => o.status === tab);
     if (q.trim()) {
       const tq = q.toLowerCase();
       list = list.filter(
@@ -257,7 +281,7 @@ export default function App() {
       list = list.filter((o) => o.product.toLowerCase().includes(fp));
     }
     return list;
-  }, [orders, tab, q, filterCustomer, filterProduct]);
+  }, [orders, deletedOrders, tab, q, filterCustomer, filterProduct]);
 
   const totalPendingQty = orders
     .filter((o) => o.status === "pending")
@@ -320,16 +344,17 @@ export default function App() {
             <span className="pending-highlight">{totalPendingQty} MT</span>
           </div>
 
-          {/* === Tabs + Filter Button === */}
           <div className="right-header">
             <div className="tabs">
-              {["all", "pending", "completed"].map((t) => (
+              {["all", "pending", "completed", "trash"].map((t) => (
                 <button
                   key={t}
                   className={`tab ${tab === t ? "active" : ""}`}
                   onClick={() => setTab(t)}
                 >
-                  {t[0].toUpperCase() + t.slice(1)}
+                  {t === "trash"
+                    ? "Trash"
+                    : t[0].toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
@@ -400,13 +425,28 @@ export default function App() {
                 <OrderRow
                   key={o.id}
                   order={o}
+                  isTrash={tab === "trash"}
                   onUpdateStatus={(id, s) =>
                     updateDoc(doc(db, "orders", id), {
                       status: s,
                       updatedAt: nowISO(),
                     })
                   }
-                  onDelete={(o) => deleteDoc(doc(db, "orders", o.id))}
+                  onDelete={async (o) => {
+                    await addDoc(collection(db, "deleted_orders"), {
+                      ...o,
+                      deletedAt: nowISO(),
+                    });
+                    await deleteDoc(doc(db, "orders", o.id));
+                  }}
+                  onRestore={async (o) => {
+                    await addDoc(collection(db, "orders"), {
+                      ...o,
+                      restoredAt: nowISO(),
+                      status: "pending",
+                    });
+                    await deleteDoc(doc(db, "deleted_orders", o.id));
+                  }}
                 />
               ))
             )}
