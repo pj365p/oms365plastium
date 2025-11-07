@@ -32,11 +32,62 @@ function formatDateLocal(iso) {
   return `${day}/${month}/${year}`;
 }
 
+/* ✅ UPDATED ORDER FORM WITH AUTOCOMPLETE */
 function OrderForm({ onAdd }) {
   const [customer, setCustomer] = useState("");
   const [product, setProduct] = useState("");
   const [qty, setQty] = useState(1);
   const [dispatchAt, setDispatchAt] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // ✅ Your customer list
+  const customerList = [
+    "Shri Khemisati Polysacks",
+    "Geotex Textile",
+    "Vivacity Woven",
+    "Bhagwan Shree Polyfab",
+    "Tribhuvan Polymers",
+    "Pristine",
+    "Shavyaa Geotex",
+    "Moneypackers",
+    "Aparna Polyplast",
+    "Salasar Polysacks",
+    "Siddhi Vinayak Industries",
+    "GVM Woven",
+    "Bhim Polyfab",
+    "Premier Plaaspack",
+    "Shree Shyam Industries",
+    "Splenzo Polyfab",
+    "Kwality",
+    "Kelsey",
+    "Vraj Packaging",
+    "Pratik Enterprises",
+    "Ambaji Geotex",
+    "Bhagwati Polyweave",
+    "Cryston Polyflex",
+    "Mukesh Associates",
+    "Shubh Polypack",
+    "SP Pack",
+    "Euro Panel Products",
+    "SS Corporation",
+    "Kshitij Polyline",
+    "Aareha Elastin FIBC",
+    "Ace Packaging",
+    "Boston Polyplast",
+    "HJ Industries",
+    "Inara Polyfab",
+    "Omkar Polyfab",
+    "Other",
+    "Priyadarshini Polysacks",
+    "Pulkit Polyexports",
+    "Star Polypack",
+    "Visma Plastics",
+  ];
+
+  // ✅ Filtered suggestions
+  const filteredSuggestions = customerList.filter((name) =>
+    name.toLowerCase().includes(customer.toLowerCase())
+  );
 
   function submit(e) {
     e.preventDefault();
@@ -61,14 +112,38 @@ function OrderForm({ onAdd }) {
   return (
     <form className="order-form" onSubmit={submit}>
       <div className="row">
-        <label>
+        <label style={{ position: "relative" }}>
           Customer
           <input
             value={customer}
-            onChange={(e) => setCustomer(e.target.value)}
+            onChange={(e) => {
+              setCustomer(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)} // delay for click
             placeholder="Customer name"
+            autoComplete="off"
           />
+
+          {/* ✅ Autocomplete dropdown */}
+          {showSuggestions && filteredSuggestions.length > 0 && (
+            <ul className="suggestion-list">
+              {filteredSuggestions.map((s, i) => (
+                <li
+                  key={i}
+                  onClick={() => {
+                    setCustomer(s);
+                    setShowSuggestions(false);
+                  }}
+                >
+                  {s}
+                </li>
+              ))}
+            </ul>
+          )}
         </label>
+
         <label>
           Product
           <input
@@ -153,7 +228,9 @@ function OrderRow({
             <input
               type="date"
               value={form.dispatchAt}
-              onChange={(e) => setForm({ ...form, dispatchAt: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, dispatchAt: e.target.value })
+              }
             />
             <button className="btn small primary" onClick={handleSave}>
               Save
@@ -212,10 +289,7 @@ function OrderRow({
             )}
             {!isTrash && (
               <>
-                <button
-                  className="btn small"
-                  onClick={() => setEditing(true)}
-                >
+                <button className="btn small" onClick={() => setEditing(true)}>
                   Edit
                 </button>
                 <button
@@ -228,10 +302,7 @@ function OrderRow({
             )}
             {isTrash && (
               <>
-                <button
-                  className="btn small"
-                  onClick={() => onRestore(order)}
-                >
+                <button className="btn small" onClick={() => onRestore(order)}>
                   Restore
                 </button>
                 <button
@@ -260,7 +331,6 @@ export default function App() {
   const ordersRef = collection(db, "orders");
   const trashRef = collection(db, "deleted_orders");
 
-  // Live listeners
   useEffect(() => {
     const unsub = onSnapshot(ordersRef, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -277,7 +347,6 @@ export default function App() {
     return unsub;
   }, []);
 
-  // Auto cleanup (delete trash older than 10 days)
   useEffect(() => {
     const cleanup = async () => {
       const tenDaysAgo = daysAgo(10);
@@ -362,7 +431,6 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* ✅ Header */}
       <header className="app-header">
         <div className="header-left">
           <img src="/pwa-192x192.png" alt="logo" className="logo" />
@@ -377,7 +445,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* ✅ Main Content */}
       <main>
         <section className="left">
           {tab !== "trash" && <OrderForm onAdd={addOrder} />}
