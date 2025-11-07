@@ -598,3 +598,31 @@ footer {
   margin-top: 10px;
 }
 
+.header-right {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #444;
+}
+
+.date-display {
+  background: #f1f3f5;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.pending-summary {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.pending-highlight {
+  color: #e63946;
+  background: rgba(230, 57, 70, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+}
