@@ -712,3 +712,91 @@ footer {
   color: #111;
   margin: 0;
 }
+/* === RIGHT HEADER (TABS + FILTER BUTTON) === */
+.right-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+/* === FILTER BUTTON === */
+.filter-btn {
+  background: #f9fafb;
+  border: none;
+  border-radius: 14px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.filter-btn:hover {
+  background: #eaf2ff;
+  color: #0056d6;
+  transform: translateY(-1px);
+}
+
+/* === FILTER BOX POPUP === */
+.filter-container {
+  position: relative;
+}
+
+.filter-box {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  width: 240px;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.filter-box label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.filter-box input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 5px;
+  transition: all 0.2s ease;
+}
+
+.filter-box input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
